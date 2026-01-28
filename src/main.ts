@@ -6,8 +6,8 @@ import { storage } from './storage/storage';
 const WEBAPP = (window as any).Telegram?.WebApp;
 
 if (WEBAPP) {
-    WEBAPP.ready();
-    WEBAPP.expand();
+  WEBAPP.ready();
+  WEBAPP.expand();
 }
 
 type Page = 'main' | 'stats' | 'settings';
@@ -15,15 +15,15 @@ let currentPage: Page = 'main';
 let selectedStatType = 'all';
 
 function navigate(page: Page) {
-    currentPage = page;
-    render();
+  currentPage = page;
+  render();
 }
 
 function render() {
-    const app = document.getElementById('app');
-    if (!app) return;
+  const app = document.getElementById('app');
+  if (!app) return;
 
-    app.innerHTML = `
+  app.innerHTML = `
     <main class="content">
       ${renderPage()}
     </main>
@@ -43,33 +43,33 @@ function render() {
     </nav>
   `;
 
-    // Bind events
-    app.querySelectorAll('.navigation__item').forEach(item => {
-        item.addEventListener('click', () => {
-            const page = item.getAttribute('data-page') as Page;
-            navigate(page);
-        });
+  // Bind events
+  app.querySelectorAll('.navigation__item').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.getAttribute('data-page') as Page;
+      navigate(page);
     });
+  });
 
-    bindPageEvents();
+  bindPageEvents();
 }
 
 function renderPage() {
-    switch (currentPage) {
-        case 'main':
-            return renderMainPage();
-        case 'stats':
-            return renderStatsPage();
-        case 'settings':
-            return renderSettingsPage();
-        default:
-            return '';
-    }
+  switch (currentPage) {
+    case 'main':
+      return renderMainPage();
+    case 'stats':
+      return renderStatsPage();
+    case 'settings':
+      return renderSettingsPage();
+    default:
+      return '';
+  }
 }
 
 function renderMainPage() {
-    const types = storage.getWorkoutTypes();
-    return `
+  const types = storage.getWorkoutTypes();
+  return `
     <div class="page-content">
       <h1 class="title">Новый подход</h1>
       <form class="workout-form" id="log-form">
@@ -102,14 +102,14 @@ function renderMainPage() {
 }
 
 function renderLogsList() {
-    const logs = storage.getLogs().slice(-10).reverse();
-    const types = storage.getWorkoutTypes();
+  const logs = storage.getLogs().slice(-10).reverse();
+  const types = storage.getWorkoutTypes();
 
-    if (logs.length === 0) return '<p class="hint">Пока нет записей</p>';
+  if (logs.length === 0) return '<p class="hint">Пока нет записей</p>';
 
-    return logs.map(log => {
-        const type = types.find(t => t.id === log.workoutTypeId);
-        return `
+  return logs.map(log => {
+    const type = types.find(t => t.id === log.workoutTypeId);
+    return `
       <div class="log-card">
         <div class="log-card__info">
           <div class="log-card__name">${type?.name || 'Удалено'}</div>
@@ -119,12 +119,12 @@ function renderLogsList() {
         <button class="log-card__delete" data-id="${log.id}">×</button>
       </div>
     `;
-    }).join('');
+  }).join('');
 }
 
 function renderSettingsPage() {
-    const types = storage.getWorkoutTypes();
-    return `
+  const types = storage.getWorkoutTypes();
+  return `
     <div class="page-content">
       <h1 class="title">Настройки</h1>
       <div class="settings-section">
@@ -147,26 +147,26 @@ function renderSettingsPage() {
 }
 
 function renderStatsPage() {
-    const logs = storage.getLogs();
-    const types = storage.getWorkoutTypes();
+  const logs = storage.getLogs();
+  const types = storage.getWorkoutTypes();
 
-    if (logs.length === 0) {
-        return `
+  if (logs.length === 0) {
+    return `
       <div class="page-content">
         <h1 class="title">Статистика</h1>
         <p class="hint">Недостаточно данных для статистики</p>
       </div>
     `;
-    }
+  }
 
-    const filteredLogs = selectedStatType === 'all'
-        ? logs
-        : logs.filter(l => l.workoutTypeId === selectedStatType);
+  const filteredLogs = selectedStatType === 'all'
+    ? logs
+    : logs.filter(l => l.workoutTypeId === selectedStatType);
 
-    const totalVolume = filteredLogs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
-    const totalReps = filteredLogs.reduce((acc, l) => acc + l.reps, 0);
+  const totalVolume = filteredLogs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
+  const totalReps = filteredLogs.reduce((acc, l) => acc + l.reps, 0);
 
-    return `
+  return `
     <div class="page-content">
       <h1 class="title">Статистика</h1>
       
@@ -200,28 +200,28 @@ function renderStatsPage() {
 }
 
 function renderSimpleChart(logs: any[]) {
-    if (logs.length < 2) return '<p class="hint" style="text-align: center">Мало данных для графика</p>';
+  if (logs.length < 2) return '<p class="hint" style="text-align: center">Мало данных для графика</p>';
 
-    // Sort by date
-    const sorted = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // Sort by date
+  const sorted = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Get max weight per day or just points
-    const points = sorted.map(l => l.weight);
-    const min = Math.min(...points);
-    const max = Math.max(...points);
-    const range = max - min || 1;
+  // Get max weight per day or just points
+  const points = sorted.map(l => l.weight);
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
 
-    const width = 400;
-    const height = 150;
-    const padding = 20;
+  const width = 400;
+  const height = 150;
+  const padding = 20;
 
-    const svgPoints = points.map((p, i) => {
-        const x = padding + (i / (points.length - 1)) * (width - 2 * padding);
-        const y = height - padding - ((p - min) / range) * (height - 2 * padding);
-        return `${x},${y}`;
-    }).join(' ');
+  const svgPoints = points.map((p, i) => {
+    const x = padding + (i / (points.length - 1)) * (width - 2 * padding);
+    const y = height - padding - ((p - min) / range) * (height - 2 * padding);
+    return `${x},${y}`;
+  }).join(' ');
 
-    return `
+  return `
     <svg viewBox="0 0 ${width} ${height}" class="chart">
       <polyline
         fill="none"
@@ -232,10 +232,10 @@ function renderSimpleChart(logs: any[]) {
         points="${svgPoints}"
       />
       ${points.map((p, i) => {
-        const x = padding + (i / (points.length - 1)) * (width - 2 * padding);
-        const y = height - padding - ((p - min) / range) * (height - 2 * padding);
-        return `<circle cx="${x}" cy="${y}" r="4" fill="var(--color-bg)" stroke="var(--color-link)" stroke-width="2" />`;
-    }).join('')}
+    const x = padding + (i / (points.length - 1)) * (width - 2 * padding);
+    const y = height - padding - ((p - min) / range) * (height - 2 * padding);
+    return `<circle cx="${x}" cy="${y}" r="4" fill="var(--color-bg)" stroke="var(--color-link)" stroke-width="2" />`;
+  }).join('')}
     </svg>
     <div style="display: flex; justify-content: space-between; margin-top: 8px;">
       <span class="hint">${min}кг</span>
@@ -245,59 +245,66 @@ function renderSimpleChart(logs: any[]) {
 }
 
 function bindPageEvents() {
-    if (currentPage === 'main') {
-        const form = document.getElementById('log-form') as HTMLFormElement;
-        form?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const formData = new FormData(form);
-            storage.addLog({
-                workoutTypeId: formData.get('typeId') as string,
-                weight: parseFloat(formData.get('weight') as string),
-                reps: parseInt(formData.get('reps') as string, 10)
-            });
-            render();
-        });
+  if (currentPage === 'main') {
+    const form = document.getElementById('log-form') as HTMLFormElement;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+      await storage.addLog({
+        workoutTypeId: formData.get('typeId') as string,
+        weight: parseFloat(formData.get('weight') as string),
+        reps: parseInt(formData.get('reps') as string, 10)
+      });
+      render();
+    });
 
-        document.querySelectorAll('.log-card__delete').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.getAttribute('data-id');
-                if (id) {
-                    storage.deleteLog(id);
-                    render();
-                }
-            });
-        });
-    }
+    document.querySelectorAll('.log-card__delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        if (id) {
+          await storage.deleteLog(id);
+          render();
+        }
+      });
+    });
+  }
 
-    if (currentPage === 'settings') {
-        const form = document.getElementById('add-type-form') as HTMLFormElement;
-        form?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const input = document.getElementById('new-type-name') as HTMLInputElement;
-            if (input.value) {
-                storage.addWorkoutType(input.value);
-                render();
-            }
-        });
+  if (currentPage === 'settings') {
+    const form = document.getElementById('add-type-form') as HTMLFormElement;
+    form?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('new-type-name') as HTMLInputElement;
+      if (input.value) {
+        await storage.addWorkoutType(input.value);
+        render();
+      }
+    });
 
-        document.querySelectorAll('.type-item__delete').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const id = btn.getAttribute('data-id');
-                if (id && confirm('Удалить этот тип тренировки?')) {
-                    storage.deleteWorkoutType(id);
-                    render();
-                }
-            });
-        });
-    }
+    document.querySelectorAll('.type-item__delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        if (id && confirm('Удалить этот тип тренировки?')) {
+          await storage.deleteWorkoutType(id);
+          render();
+        }
+      });
+    });
+  }
 
-    if (currentPage === 'stats') {
-        const select = document.getElementById('stat-type-select') as HTMLSelectElement;
-        select?.addEventListener('change', () => {
-            selectedStatType = select.value;
-            render();
-        });
-    }
+  if (currentPage === 'stats') {
+    const select = document.getElementById('stat-type-select') as HTMLSelectElement;
+    select?.addEventListener('change', () => {
+      selectedStatType = select.value;
+      render();
+    });
+  }
 }
 
-render();
+storage.onUpdate(() => render());
+
+async function initApp() {
+  render();
+  await storage.init();
+}
+
+initApp();
