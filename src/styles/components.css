@@ -76,44 +76,76 @@
     color: var(--color-link);
 }
 
-/* Log Cards */
-.log-card {
-    display: flex;
-    align-items: center;
-    padding: var(--spacing-m);
+/* Grouped Logs */
+.log-day {
+    margin-bottom: var(--spacing-l);
+}
+
+.log-day__header {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-hint);
+    text-transform: capitalize;
+    margin-bottom: var(--spacing-s);
+    padding-left: var(--spacing-xs);
+}
+
+.log-exercise {
     background-color: var(--color-secondary-bg);
     border-radius: var(--border-radius);
+    padding: var(--spacing-m);
     margin-bottom: var(--spacing-s);
-    position: relative;
 }
 
-.log-card__info {
-    flex: 1;
-}
-
-.log-card__name {
+.log-exercise__name {
     font-weight: 600;
-    margin-bottom: 2px;
+    margin-bottom: var(--spacing-s);
+    color: var(--color-text);
 }
 
-.log-card__details {
-    font-size: 14px;
-    color: var(--color-hint);
+.log-exercise__sets {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
 }
 
-.log-card__date {
+.log-set {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--color-bg);
+    border-radius: calc(var(--border-radius) / 2);
+}
+
+.log-set__info {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.log-set__weight {
+    font-weight: 600;
+}
+
+.log-set__times {
     font-size: 12px;
     color: var(--color-hint);
-    margin-right: var(--spacing-m);
 }
 
-.log-card__delete {
+.log-set__reps {
+    color: var(--color-link);
+    font-weight: 600;
+}
+
+.log-set__delete {
     background: none;
     border: none;
     color: var(--color-hint);
-    font-size: 20px;
+    font-size: 18px;
     cursor: pointer;
-    padding: 4px;
+    padding: 0 4px;
+    line-height: 1;
 }
 
 /* Settings */

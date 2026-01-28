@@ -2,6 +2,7 @@ import './styles/base.css';
 import './styles/components.css';
 import './components/navigation/navigation.css';
 import { storage } from './storage/storage';
+import { WorkoutSet } from './types';
 
 const WEBAPP = (window as any).Telegram?.WebApp;
 
@@ -106,24 +107,68 @@ function renderMainPage() {
 }
 
 function renderLogsList() {
-  const logs = storage.getLogs().slice(-10).reverse();
+  const allLogs = storage.getLogs();
   const types = storage.getWorkoutTypes();
 
-  if (logs.length === 0) return '<p class="hint">Пока нет записей</p>';
+  if (allLogs.length === 0) return '<p class="hint">Пока нет записей</p>';
 
-  return logs.map(log => {
-    const type = types.find(t => t.id === log.workoutTypeId);
-    return `
-      <div class="log-card">
-        <div class="log-card__info">
-          <div class="log-card__name">${type?.name || 'Удалено'}</div>
-          <div class="log-card__details">${log.weight} кг × ${log.reps}</div>
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  weekAgo.setHours(0, 0, 0, 0);
+
+  const weekLogs = allLogs.filter(log => new Date(log.date) >= weekAgo);
+
+  if (weekLogs.length === 0) return '<p class="hint">За последнюю неделю записей нет</p>';
+
+  // Group by day
+  const groupsByDay: Map<string, WorkoutSet[]> = new Map();
+  // Sort logs by date descending
+  [...weekLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(log => {
+    const d = new Date(log.date);
+    const dateKey = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
+    if (!groupsByDay.has(dateKey)) groupsByDay.set(dateKey, []);
+    groupsByDay.get(dateKey)!.push(log);
+  });
+
+  let html = '';
+  groupsByDay.forEach((dayLogs, dateLabel) => {
+    html += `<div class="log-day">`;
+    html += `<div class="log-day__header">${dateLabel}</div>`;
+
+    // Group by exercise within day (preserving chronological order of groups)
+    const exerciseGroups: Map<string, WorkoutSet[]> = new Map();
+    [...dayLogs].reverse().forEach(log => {
+      if (!exerciseGroups.has(log.workoutTypeId)) {
+        exerciseGroups.set(log.workoutTypeId, []);
+      }
+      exerciseGroups.get(log.workoutTypeId)!.push(log);
+    });
+
+    exerciseGroups.forEach((sets, typeId) => {
+      const type = types.find(t => t.id === typeId);
+      html += `
+        <div class="log-exercise">
+          <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
+          <div class="log-exercise__sets">
+            ${[...sets].reverse().map(set => `
+              <div class="log-set">
+                <div class="log-set__info">
+                  <span class="log-set__weight">${set.weight} кг</span>
+                  <span class="log-set__times">×</span>
+                  <span class="log-set__reps">${set.reps}</span>
+                </div>
+                <button class="log-set__delete" data-id="${set.id}">×</button>
+              </div>
+            `).join('')}
+          </div>
         </div>
-        <div class="log-card__date">${new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-        <button class="log-card__delete" data-id="${log.id}">×</button>
-      </div>
-    `;
-  }).join('');
+      `;
+    });
+
+    html += `</div>`;
+  });
+
+  return html;
 }
 
 function renderSettingsPage() {
@@ -262,7 +307,7 @@ function bindPageEvents() {
       render();
     });
 
-    document.querySelectorAll('.log-card__delete').forEach(btn => {
+    document.querySelectorAll('.log-set__delete').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         if (id) {
