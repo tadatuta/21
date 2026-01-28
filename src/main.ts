@@ -69,6 +69,10 @@ function renderPage() {
 
 function renderMainPage() {
   const types = storage.getWorkoutTypes();
+  const logs = storage.getLogs();
+  const lastLog = logs[logs.length - 1];
+  const lastTypeId = lastLog?.workoutTypeId;
+
   return `
     <div class="page-content">
       <h1 class="title">Новый подход</h1>
@@ -76,7 +80,7 @@ function renderMainPage() {
         <div class="form-group">
           <label class="label">Тип тренировки</label>
           <select class="select" name="typeId" required>
-            ${types.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+            ${types.map(t => `<option value="${t.id}" ${t.id === lastTypeId ? 'selected' : ''}>${t.name}</option>`).join('')}
           </select>
         </div>
         <div class="form-row">
