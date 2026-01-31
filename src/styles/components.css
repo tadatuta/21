@@ -138,7 +138,8 @@
     font-weight: 600;
 }
 
-.log-set__delete {
+.log-set__delete,
+.log-set__edit {
     background: none;
     border: none;
     color: var(--color-hint);
@@ -146,6 +147,10 @@
     cursor: pointer;
     padding: 0 4px;
     line-height: 1;
+}
+
+.log-set__edit:hover {
+    color: var(--color-link);
 }
 
 /* Settings */
