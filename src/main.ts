@@ -14,6 +14,7 @@ if (WEBAPP) {
 type Page = 'main' | 'stats' | 'settings';
 let currentPage: Page = 'main';
 let selectedStatType = 'all';
+let editingLogId: string | null = null;
 
 function navigate(page: Page) {
   currentPage = page;
@@ -68,34 +69,38 @@ function renderPage() {
   }
 }
 
+
 function renderMainPage() {
   const types = storage.getWorkoutTypes();
   const logs = storage.getLogs();
   const lastLog = logs[logs.length - 1];
   const lastTypeId = lastLog?.workoutTypeId;
 
+  const editingLog = editingLogId ? logs.find(l => l.id === editingLogId) : null;
+
   return `
-    <div class="page-content">
-      <h1 class="title">Новый подход</h1>
+    <div class="page-content" id="main-content">
+      <h1 class="title">${editingLogId ? 'Редактирование подхода' : 'Новый подход'}</h1>
       <form class="workout-form" id="log-form">
         <div class="form-group">
           <label class="label">Тип тренировки</label>
           <select class="select" name="typeId" required>
-            ${types.map(t => `<option value="${t.id}" ${t.id === lastTypeId ? 'selected' : ''}>${t.name}</option>`).join('')}
+            ${types.map(t => `<option value="${t.id}" ${(editingLogId ? (editingLog && t.id === editingLog.workoutTypeId) : (t.id === lastTypeId)) ? 'selected' : ''}>${t.name}</option>`).join('')}
           </select>
         </div>
         <div class="form-row">
           <div class="form-group">
             <label class="label">Вес (кг)</label>
-            <input class="input" type="number" name="weight" step="0.5" required placeholder="0">
+            <input class="input" type="number" name="weight" step="0.5" required placeholder="0" value="${editingLogId && editingLog ? editingLog.weight : ''}">
           </div>
           <div class="form-group">
             <label class="label">Повторений</label>
-            <input class="input" type="number" name="reps" required placeholder="0">
+            <input class="input" type="number" name="reps" required placeholder="0" value="${editingLogId && editingLog ? editingLog.reps : ''}">
           </div>
         </div>
-        <button class="button" type="submit">Зафиксировать</button>
-        ${lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight}кг × ${lastLog.reps}</button>` : ''}
+        <button class="button" type="submit">${editingLogId ? 'Сохранить изменения' : 'Зафиксировать'}</button>
+        ${editingLogId ? `<button class="button button_secondary" type="button" id="cancel-edit-btn" style="margin-top: 12px;">Отмена</button>` : ''}
+        ${!editingLogId && lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight}кг × ${lastLog.reps}</button>` : ''}
       </form>
       <div class="recent-logs">
         <h2 class="subtitle">Последние записи</h2>
@@ -152,13 +157,16 @@ function renderLogsList() {
           <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
           <div class="log-exercise__sets">
             ${[...sets].reverse().map(set => `
-              <div class="log-set">
+              <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''}">
                 <div class="log-set__info">
                   <span class="log-set__weight">${set.weight} кг</span>
                   <span class="log-set__times">×</span>
                   <span class="log-set__reps">${set.reps}</span>
                 </div>
-                <button class="log-set__delete" data-id="${set.id}">×</button>
+                <div class="log-set__actions">
+                  <button class="log-set__edit" data-id="${set.id}">✏️</button>
+                  <button class="log-set__delete" data-id="${set.id}">×</button>
+                </div>
               </div>
             `).join('')}
           </div>
@@ -300,11 +308,25 @@ function bindPageEvents() {
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
-      await storage.addLog({
+      const logData = {
         workoutTypeId: formData.get('typeId') as string,
         weight: parseFloat(formData.get('weight') as string),
         reps: parseInt(formData.get('reps') as string, 10)
-      });
+      };
+
+      if (editingLogId) {
+        const logs = storage.getLogs();
+        const existingLog = logs.find(l => l.id === editingLogId);
+        if (existingLog) {
+          await storage.updateLog({
+            ...existingLog,
+            ...logData
+          });
+          editingLogId = null;
+        }
+      } else {
+        await storage.addLog(logData);
+      }
       render();
     });
 
@@ -322,13 +344,28 @@ function bindPageEvents() {
       }
     });
 
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    cancelEditBtn?.addEventListener('click', () => {
+      editingLogId = null;
+      render();
+    });
+
     document.querySelectorAll('.log-set__delete').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         if (id) {
+          if (editingLogId === id) editingLogId = null;
           await storage.deleteLog(id);
           render();
         }
+      });
+    });
+
+    document.querySelectorAll('.log-set__edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingLogId = btn.getAttribute('data-id');
+        render(); // Renders the page with the form pre-filled
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to form
       });
     });
   }

@@ -129,6 +129,14 @@ export class StorageService {
         this.data.logs = this.data.logs.filter(l => l.id !== id);
         await this.persist();
     }
+
+    async updateLog(updatedLog: WorkoutSet): Promise<void> {
+        const index = this.data.logs.findIndex(l => l.id === updatedLog.id);
+        if (index !== -1) {
+            this.data.logs[index] = updatedLog;
+            await this.persist();
+        }
+    }
 }
 
 export const storage = new StorageService();
