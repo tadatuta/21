@@ -96,6 +96,13 @@ if (import.meta.env.DEV) {
                 hideProgress: () => console.log('[MockTg] MainButton.hideProgress()'),
                 setParams: (params: any) => console.log('[MockTg] MainButton.setParams:', params),
             },
+
+            // Telegram link opening
+            openTelegramLink: (url: string) => {
+                console.log(`[MockTg] openTelegramLink: ${url}`);
+                // In dev mode, open in new tab to simulate behavior
+                window.open(url, '_blank');
+            },
             HapticFeedback: {
                 impactOccurred: (style: string) => console.log(`[MockTg] Haptic.impact: ${style}`),
                 notificationOccurred: (type: string) => console.log(`[MockTg] Haptic.notification: ${type}`),

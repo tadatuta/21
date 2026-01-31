@@ -139,8 +139,12 @@ function renderLogsList() {
 
   let html = '';
   groupsByDay.forEach((dayLogs, dateLabel) => {
+    const dayDateStr = dayLogs[0]?.date.split('T')[0] || '';
     html += `<div class="log-day">`;
-    html += `<div class="log-day__header">${dateLabel}</div>`;
+    html += `<div class="log-day__header">
+      <span>${dateLabel}</span>
+      <button class="share-btn" data-date="${dayDateStr}" title="Поделиться">📤</button>
+    </div>`;
 
     // Group by exercise within day (latest exercise group first)
     const exerciseGroups: Map<string, WorkoutSet[]> = new Map();
@@ -303,6 +307,61 @@ function renderSimpleChart(logs: any[]) {
   `;
 }
 
+function formatWorkoutForShare(dateStr: string): string {
+  const allLogs = storage.getLogs();
+  const types = storage.getWorkoutTypes();
+
+  // Get logs for the specific date
+  const dayLogs = allLogs.filter(log => log.date.startsWith(dateStr));
+  if (dayLogs.length === 0) return '';
+
+  // Format the date for display
+  const dateObj = new Date(dayLogs[0].date);
+  const dateLabel = dateObj.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+
+  // Group by exercise
+  const exerciseGroups: Map<string, WorkoutSet[]> = new Map();
+  dayLogs.forEach(log => {
+    if (!exerciseGroups.has(log.workoutTypeId)) {
+      exerciseGroups.set(log.workoutTypeId, []);
+    }
+    exerciseGroups.get(log.workoutTypeId)!.push(log);
+  });
+
+  let text = `🏋️ Тренировка ${dateLabel}\n\n`;
+
+  exerciseGroups.forEach((sets, typeId) => {
+    const type = types.find(t => t.id === typeId);
+    text += `${type?.name || 'Упражнение'}:\n`;
+    sets.forEach(set => {
+      text += `  ${set.weight} кг × ${set.reps}\n`;
+    });
+    text += '\n';
+  });
+
+  // Calculate total volume
+  const totalVolume = dayLogs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
+  text += `💪 Общий объём: ${Math.round(totalVolume)} кг`;
+
+  return text;
+}
+
+function shareWorkout(dateStr: string) {
+  const text = formatWorkoutForShare(dateStr);
+  if (!text) return;
+
+  if (WEBAPP?.openTelegramLink) {
+    // Use Telegram share URL
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent('https://t.me/gymgym21bot')}&text=${encodeURIComponent(text)}`;
+    WEBAPP.openTelegramLink(shareUrl);
+  } else {
+    // Fallback: copy to clipboard
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Текст скопирован в буфер обмена');
+    });
+  }
+}
+
 function bindPageEvents() {
   if (currentPage === 'main') {
     const form = document.getElementById('log-form') as HTMLFormElement;
@@ -365,8 +424,18 @@ function bindPageEvents() {
     document.querySelectorAll('.log-set__edit').forEach(btn => {
       btn.addEventListener('click', () => {
         editingLogId = btn.getAttribute('data-id');
-        render(); // Renders the page with the form pre-filled
-        window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll to form
+        render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    // Share button events
+    document.querySelectorAll('.share-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const dateStr = btn.getAttribute('data-date');
+        if (dateStr) {
+          shareWorkout(dateStr);
+        }
       });
     });
   }
