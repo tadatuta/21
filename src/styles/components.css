@@ -214,3 +214,38 @@
     font-size: 14px;
     color: var(--color-hint);
 }
+
+/* Sync Status */
+.sync-status {
+    position: fixed;
+    top: var(--spacing-m);
+    right: var(--spacing-m);
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: opacity 0.3s ease, background-color 0.3s ease;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.sync-status.visible {
+    opacity: 1;
+}
+
+.sync-status.saving {
+    background-color: var(--color-secondary-bg);
+    color: var(--color-hint);
+}
+
+.sync-status.success {
+    background-color: #e6f7ed;
+    color: #2e7d32;
+}
+
+.sync-status.error {
+    background-color: #fbedeb;
+    color: #d32f2f;
+}

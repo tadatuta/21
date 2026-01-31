@@ -2,7 +2,7 @@ import './telegram-mock';
 import './styles/base.css';
 import './styles/components.css';
 import './components/navigation/navigation.css';
-import { storage } from './storage/storage';
+import { storage, SyncStatus } from './storage/storage';
 import { WorkoutSet } from './types';
 
 const WEBAPP = (window as any).Telegram?.WebApp;
@@ -402,7 +402,31 @@ function bindPageEvents() {
   }
 }
 
+
+const syncStatusEl = document.createElement('div');
+syncStatusEl.className = 'sync-status';
+document.body.appendChild(syncStatusEl);
+
+function updateSyncStatus(status: SyncStatus) {
+  syncStatusEl.className = 'sync-status visible ' + status;
+
+  switch (status) {
+    case 'saving':
+      syncStatusEl.textContent = 'Сохранение...';
+      break;
+    case 'success':
+      syncStatusEl.textContent = 'Сохранено';
+      break;
+    case 'error':
+      syncStatusEl.textContent = 'Ошибка сохранения';
+      break;
+    default:
+      syncStatusEl.className = 'sync-status'; // Hide
+  }
+}
+
 storage.onUpdate(() => render());
+storage.onSyncStatusChange(updateSyncStatus);
 
 async function initApp() {
   render();

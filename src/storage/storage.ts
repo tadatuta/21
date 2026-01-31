@@ -14,9 +14,13 @@ const defaultData: AppData = {
     logs: []
 };
 
+export type SyncStatus = 'idle' | 'saving' | 'success' | 'error';
+
 export class StorageService {
     private data: AppData;
     private onUpdateCallback?: () => void;
+    private onSyncStatusChangeCallback?: (status: SyncStatus) => void;
+    private status: SyncStatus = 'idle';
 
     constructor() {
         this.data = this.loadLocal();
@@ -40,6 +44,23 @@ export class StorageService {
         this.onUpdateCallback = callback;
     }
 
+    onSyncStatusChange(callback: (status: SyncStatus) => void) {
+        this.onSyncStatusChangeCallback = callback;
+    }
+
+    private setStatus(status: SyncStatus) {
+        this.status = status;
+        this.onSyncStatusChangeCallback?.(status);
+
+        if (status === 'success') {
+            setTimeout(() => {
+                if (this.status === 'success') {
+                    this.setStatus('idle');
+                }
+            }, 2000);
+        }
+    }
+
     private loadLocal(): AppData {
         const json = localStorage.getItem(STORAGE_KEY);
         if (!json) return defaultData;
@@ -56,6 +77,7 @@ export class StorageService {
     }
 
     private async syncFromServer() {
+        this.setStatus('saving');
         try {
             const response = await fetch(SERVER_URL, {
                 headers: this.getHeaders()
@@ -68,21 +90,28 @@ export class StorageService {
                     this.saveLocal();
                     this.onUpdateCallback?.();
                 }
+                this.setStatus('success');
+            } else {
+                this.setStatus('error');
             }
         } catch (e) {
             console.error('Failed to sync from server', e);
+            this.setStatus('error');
         }
     }
 
     private async saveToServer() {
+        this.setStatus('saving');
         try {
             await fetch(SERVER_URL, {
                 method: 'POST',
                 headers: this.getHeaders(),
                 body: JSON.stringify(this.data)
             });
+            this.setStatus('success');
         } catch (e) {
             console.error('Failed to save to server', e);
+            this.setStatus('error');
         }
     }
 
