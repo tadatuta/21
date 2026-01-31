@@ -142,9 +142,9 @@ function renderLogsList() {
     html += `<div class="log-day">`;
     html += `<div class="log-day__header">${dateLabel}</div>`;
 
-    // Group by exercise within day (preserving chronological order of groups)
+    // Group by exercise within day (latest exercise group first)
     const exerciseGroups: Map<string, WorkoutSet[]> = new Map();
-    [...dayLogs].reverse().forEach(log => {
+    dayLogs.forEach(log => {
       if (!exerciseGroups.has(log.workoutTypeId)) {
         exerciseGroups.set(log.workoutTypeId, []);
       }
@@ -157,7 +157,7 @@ function renderLogsList() {
         <div class="log-exercise">
           <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
           <div class="log-exercise__sets">
-            ${[...sets].reverse().map(set => `
+            ${sets.map(set => `
               <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''}">
                 <div class="log-set__info">
                   <span class="log-set__weight">${set.weight} кг</span>
