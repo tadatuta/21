@@ -1,3 +1,4 @@
+import './telegram-mock';
 import './styles/base.css';
 import './styles/components.css';
 import './components/navigation/navigation.css';
