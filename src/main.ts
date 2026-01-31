@@ -95,6 +95,7 @@ function renderMainPage() {
           </div>
         </div>
         <button class="button" type="submit">Зафиксировать</button>
+        ${lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight}кг × ${lastLog.reps}</button>` : ''}
       </form>
       <div class="recent-logs">
         <h2 class="subtitle">Последние записи</h2>
@@ -305,6 +306,20 @@ function bindPageEvents() {
         reps: parseInt(formData.get('reps') as string, 10)
       });
       render();
+    });
+
+    const duplicateBtn = document.getElementById('duplicate-last-btn');
+    duplicateBtn?.addEventListener('click', async () => {
+      const logs = storage.getLogs();
+      const lastLog = logs[logs.length - 1];
+      if (lastLog) {
+        await storage.addLog({
+          workoutTypeId: lastLog.workoutTypeId,
+          weight: lastLog.weight,
+          reps: lastLog.reps
+        });
+        render();
+      }
     });
 
     document.querySelectorAll('.log-set__delete').forEach(btn => {
