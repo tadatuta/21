@@ -1,9 +1,10 @@
 import './telegram-mock';
 import './styles/base.css';
 import './styles/components.css';
+import './styles/profile.css';
 import './components/navigation/navigation.css';
 import { storage, SyncStatus } from './storage/storage';
-import { WorkoutSet } from './types';
+import { WorkoutSet, PublicProfileData } from './types';
 
 const WEBAPP = (window as any).Telegram?.WebApp;
 
@@ -12,10 +13,12 @@ if (WEBAPP) {
   WEBAPP.expand();
 }
 
-type Page = 'main' | 'stats' | 'settings';
+type Page = 'main' | 'stats' | 'settings' | 'profile-settings' | 'public-profile';
 let currentPage: Page = 'main';
 let selectedStatType = 'all';
 let editingLogId: string | null = null;
+let viewingProfileIdentifier: string | null = null;
+let loadedPublicProfile: PublicProfileData | null = null;
 
 function navigate(page: Page) {
   currentPage = page;
@@ -38,6 +41,10 @@ function render() {
       <button class="navigation__item ${currentPage === 'stats' ? 'navigation__item_active' : ''}" data-page="stats">
         <span class="navigation__icon">📊</span>
         <span class="navigation__label">Статистика</span>
+      </button>
+      <button class="navigation__item ${currentPage === 'profile-settings' ? 'navigation__item_active' : ''}" data-page="profile-settings">
+        <span class="navigation__icon">👤</span>
+        <span class="navigation__label">Профиль</span>
       </button>
       <button class="navigation__item ${currentPage === 'settings' ? 'navigation__item_active' : ''}" data-page="settings">
         <span class="navigation__icon">⚙️</span>
@@ -65,6 +72,10 @@ function renderPage() {
       return renderStatsPage();
     case 'settings':
       return renderSettingsPage();
+    case 'profile-settings':
+      return renderProfileSettingsPage();
+    case 'public-profile':
+      return renderPublicProfilePage();
     default:
       return '';
   }
@@ -205,6 +216,148 @@ function renderSettingsPage() {
           <button class="button button_secondary" type="submit">Добавить</button>
         </form>
       </div>
+    </div>
+  `;
+}
+
+function renderProfileSettingsPage() {
+  const profile = storage.getProfile();
+  const isPublic = profile?.isPublic ?? false;
+  const displayName = profile?.displayName || WEBAPP?.initDataUnsafe?.user?.first_name || '';
+  const identifier = storage.getProfileIdentifier();
+  const profileUrl = identifier ? `https://t.me/gymgym21bot/app?startapp=profile_${identifier}` : '';
+
+  // Calculate stats for preview
+  const logs = storage.getLogs();
+  const totalVolume = logs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
+  const uniqueDays = new Set(logs.map(l => l.date.split('T')[0])).size;
+
+  return `
+    <div class="page-content">
+      <h1 class="title">Профиль</h1>
+      
+      <div class="profile-header">
+        <div class="profile-avatar">${displayName.charAt(0).toUpperCase()}</div>
+        <div class="profile-name">${displayName}</div>
+        <div class="profile-subtitle">${isPublic ? 'Публичный профиль' : 'Приватный профиль'}</div>
+      </div>
+
+      <div class="profile-settings">
+        <div class="settings-section">
+          <div class="settings-section-title">Видимость</div>
+          <div class="toggle-row">
+            <div class="toggle-label">
+              <span class="toggle-label-text">Публичный профиль</span>
+              <span class="toggle-label-hint">Другие смогут видеть вашу статистику</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="profile-public-toggle" ${isPublic ? 'checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <div class="settings-section-title">Имя</div>
+          <input class="input" type="text" id="profile-display-name" value="${displayName}" placeholder="Ваше имя">
+        </div>
+
+        ${isPublic && identifier ? `
+          <div class="settings-section">
+            <div class="settings-section-title">Ссылка на профиль</div>
+            <div class="profile-link-section">
+              <div class="profile-link-url">${profileUrl}</div>
+              <div class="profile-link-actions">
+                <button class="button button_secondary" id="copy-profile-link">Копировать</button>
+                <button class="button" id="share-profile-link">Поделиться</button>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="settings-section">
+          <div class="settings-section-title">Превью статистики</div>
+          <div class="profile-stats">
+            <div class="stat-card">
+              <div class="stat-value">${uniqueDays}</div>
+              <div class="stat-label">Тренировок</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${Math.round(totalVolume / 1000)}т</div>
+              <div class="stat-label">Общий объём</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="button" id="save-profile-btn" style="margin-top: 16px;">Сохранить</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPublicProfilePage() {
+  if (!viewingProfileIdentifier) {
+    return `
+      <div class="page-content">
+        <div class="profile-not-found">
+          <div class="profile-not-found-icon">🔍</div>
+          <div class="profile-not-found-text">Профиль не найден</div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (!loadedPublicProfile) {
+    return `
+      <div class="page-content">
+        <div class="profile-loading">Загрузка профиля...</div>
+      </div>
+    `;
+  }
+
+  const profile = loadedPublicProfile;
+  return `
+    <div class="page-content">
+      <div class="profile-header">
+        <div class="profile-avatar">${profile.displayName.charAt(0).toUpperCase()}</div>
+        <div class="profile-name">${profile.displayName}</div>
+        <div class="profile-subtitle">@${profile.identifier}</div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="stat-card">
+          <div class="stat-value">${profile.stats.totalWorkouts}</div>
+          <div class="stat-label">Тренировок</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${Math.round(profile.stats.totalVolume / 1000)}т</div>
+          <div class="stat-label">Общий объём</div>
+        </div>
+        ${profile.stats.favoriteExercise ? `
+          <div class="stat-card">
+            <div class="stat-value" style="font-size: 1rem;">${profile.stats.favoriteExercise}</div>
+            <div class="stat-label">Любимое упражнение</div>
+          </div>
+        ` : ''}
+        ${profile.stats.lastWorkoutDate ? `
+          <div class="stat-card">
+            <div class="stat-value" style="font-size: 1rem;">${new Date(profile.stats.lastWorkoutDate).toLocaleDateString()}</div>
+            <div class="stat-label">Последняя тренировка</div>
+          </div>
+        ` : ''}
+      </div>
+
+      ${profile.recentActivity.length > 0 ? `
+        <div class="activity-list">
+          <h2 class="subtitle">Недавняя активность</h2>
+          ${profile.recentActivity.map(a => `
+            <div class="activity-item">
+              <span class="activity-date">${new Date(a.date).toLocaleDateString()}</span>
+              <span class="activity-count">${a.exerciseCount} упражнений</span>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
     </div>
   `;
 }
@@ -469,6 +622,43 @@ function bindPageEvents() {
       render();
     });
   }
+
+  if (currentPage === 'profile-settings') {
+    const saveBtn = document.getElementById('save-profile-btn');
+    saveBtn?.addEventListener('click', async () => {
+      const toggle = document.getElementById('profile-public-toggle') as HTMLInputElement;
+      const nameInput = document.getElementById('profile-display-name') as HTMLInputElement;
+
+      await storage.updateProfileSettings({
+        isPublic: toggle?.checked ?? false,
+        displayName: nameInput?.value || undefined,
+      });
+      render();
+    });
+
+    const copyBtn = document.getElementById('copy-profile-link');
+    copyBtn?.addEventListener('click', () => {
+      const identifier = storage.getProfileIdentifier();
+      const profileUrl = `https://t.me/gymgym21bot/app?startapp=profile_${identifier}`;
+      navigator.clipboard.writeText(profileUrl).then(() => {
+        alert('Ссылка скопирована');
+      });
+    });
+
+    const shareBtn = document.getElementById('share-profile-link');
+    shareBtn?.addEventListener('click', () => {
+      const identifier = storage.getProfileIdentifier();
+      const profileUrl = `https://t.me/gymgym21bot/app?startapp=profile_${identifier}`;
+      if (WEBAPP?.openTelegramLink) {
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(profileUrl)}&text=${encodeURIComponent('Мой профиль тренировок 💪')}`;
+        WEBAPP.openTelegramLink(shareUrl);
+      } else {
+        navigator.clipboard.writeText(profileUrl).then(() => {
+          alert('Ссылка скопирована');
+        });
+      }
+    });
+  }
 }
 
 
@@ -498,7 +688,23 @@ storage.onUpdate(() => render());
 storage.onSyncStatusChange(updateSyncStatus);
 
 async function initApp() {
-  render();
+  // Check for profile deep link from startapp parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const startApp = urlParams.get('startapp') || WEBAPP?.initDataUnsafe?.start_param;
+
+  if (startApp && startApp.startsWith('profile_')) {
+    const identifier = startApp.replace('profile_', '');
+    viewingProfileIdentifier = identifier;
+    currentPage = 'public-profile';
+    render();
+
+    // Load the public profile
+    loadedPublicProfile = await storage.getPublicProfile(identifier);
+    render();
+  } else {
+    render();
+  }
+
   await storage.init();
 }
 
