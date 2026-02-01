@@ -100,6 +100,32 @@ function renderPage() {
 }
 
 
+let currentWeekOffset = 0;
+
+function getWeekRange(offset: number) {
+  const now = new Date();
+  // Adjust to start of today (00:00:00)
+  now.setHours(0, 0, 0, 0);
+
+  // Calculate start of the "current" week window based on offset
+  // offset 0: last 7 days (today - 6 days) to today
+  // offset 1: (today - 13 days) to (today - 7 days)
+  const end = new Date(now);
+  end.setDate(now.getDate() - (offset * 7));
+  // Set end time to end of day
+  end.setHours(23, 59, 59, 999);
+
+  const start = new Date(end);
+  start.setDate(end.getDate() - 6); // 7 day window
+  start.setHours(0, 0, 0, 0);
+
+  return {
+    start,
+    end,
+    label: `${start.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}`
+  };
+}
+
 function renderMainPage() {
   const types = storage.getWorkoutTypes();
   const logs = storage.getLogs();
@@ -107,6 +133,7 @@ function renderMainPage() {
   const lastTypeId = lastLog?.workoutTypeId;
 
   const editingLog = editingLogId ? logs.find(l => l.id === editingLogId) : null;
+  const { label } = getWeekRange(currentWeekOffset);
 
   return `
     <div class="page-content" id="main-content">
@@ -133,7 +160,11 @@ function renderMainPage() {
         ${!editingLogId && lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight}кг × ${lastLog.reps}</button>` : ''}
       </form>
       <div class="recent-logs">
-        <h2 class="subtitle">Последние записи</h2>
+        <div class="recent-logs__header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+           <button class="icon-btn" id="prev-week-btn">◀️</button>
+           <h2 class="subtitle" style="margin: 0;">${currentWeekOffset === 0 ? 'Последние 7 дней' : label}</h2>
+           <button class="icon-btn" id="next-week-btn" ${currentWeekOffset === 0 ? 'disabled' : ''} style="${currentWeekOffset === 0 ? 'opacity: 0.3; cursor: default;' : ''}">▶️</button>
+        </div>
         <div id="logs-list">
           ${renderLogsList()}
         </div>
@@ -148,13 +179,14 @@ function renderLogsList() {
 
   if (allLogs.length === 0) return '<p class="hint">Пока нет записей</p>';
 
-  const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  weekAgo.setHours(0, 0, 0, 0);
+  const { start, end } = getWeekRange(currentWeekOffset);
 
-  const weekLogs = allLogs.filter(log => new Date(log.date) >= weekAgo);
+  const weekLogs = allLogs.filter(log => {
+    const logDate = new Date(log.date);
+    return logDate >= start && logDate <= end;
+  });
 
-  if (weekLogs.length === 0) return '<p class="hint">За последнюю неделю записей нет</p>';
+  if (weekLogs.length === 0) return '<p class="hint">Нет записей за этот период</p>';
 
   // Group by day
   const groupsByDay: Map<string, WorkoutSet[]> = new Map();
@@ -622,6 +654,20 @@ function bindPageEvents() {
           shareWorkout(dateStr);
         }
       });
+    });
+
+    const prevWeekBtn = document.getElementById('prev-week-btn');
+    prevWeekBtn?.addEventListener('click', () => {
+      currentWeekOffset++;
+      render();
+    });
+
+    const nextWeekBtn = document.getElementById('next-week-btn');
+    nextWeekBtn?.addEventListener('click', () => {
+      if (currentWeekOffset > 0) {
+        currentWeekOffset--;
+        render();
+      }
     });
   }
 
