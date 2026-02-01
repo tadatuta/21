@@ -255,7 +255,9 @@ function renderProfileSettingsPage() {
       <h1 class="title">Профиль</h1>
       
       <div class="profile-header">
-        <div class="profile-avatar">${displayName.charAt(0).toUpperCase()}</div>
+        <div class="profile-avatar">
+          ${profile?.photoUrl ? `<img src="${profile.photoUrl}" alt="${displayName}" class="profile-avatar-img">` : displayName.charAt(0).toUpperCase()}
+        </div>
         <div class="profile-name">${displayName}</div>
         <div class="profile-subtitle">${isPublic ? 'Публичный профиль' : 'Приватный профиль'}</div>
       </div>
@@ -347,7 +349,9 @@ function renderPublicProfilePage() {
   return `
     <div class="page-content profile-page">
       <div class="profile-header">
-        <div class="profile-avatar">${profile.displayName.charAt(0).toUpperCase()}</div>
+        <div class="profile-avatar">
+          ${profile.photoUrl ? `<img src="${profile.photoUrl}" alt="${profile.displayName}" class="profile-avatar-img">` : profile.displayName.charAt(0).toUpperCase()}
+        </div>
         <div class="profile-name">${profile.displayName}</div>
         <div class="profile-subtitle">@${profile.identifier}</div>
       </div>

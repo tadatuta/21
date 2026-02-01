@@ -186,16 +186,24 @@ export class StorageService {
     }
 
     async updateProfileSettings(settings: Partial<UserProfile>): Promise<void> {
-        const userId = WEBAPP?.initDataUnsafe?.user?.id;
-        const username = WEBAPP?.initDataUnsafe?.user?.username;
+        const user = WEBAPP?.initDataUnsafe?.user;
+        const userId = user?.id;
+        const username = user?.username;
+        const photoUrl = user?.photo_url;
 
         if (!this.data.profile) {
             this.data.profile = {
                 isPublic: false,
                 telegramUserId: userId || 0,
                 telegramUsername: username,
+                photoUrl: photoUrl,
                 createdAt: new Date().toISOString(),
             };
+        } else {
+            // Update photo URL if it's available and different
+            if (photoUrl) {
+                this.data.profile.photoUrl = photoUrl;
+            }
         }
 
         this.data.profile = { ...this.data.profile, ...settings };

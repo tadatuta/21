@@ -14,6 +14,7 @@ export interface WorkoutSet {
 export interface UserProfile {
     isPublic: boolean;
     displayName?: string;
+    photoUrl?: string;
     telegramUsername?: string;
     telegramUserId: number;
     createdAt: string;
@@ -21,6 +22,7 @@ export interface UserProfile {
 
 export interface PublicProfileData {
     displayName: string;
+    photoUrl?: string;
     identifier: string; // username или id_123456
     stats: {
         totalWorkouts: number;

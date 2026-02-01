@@ -22,7 +22,8 @@ if (import.meta.env.DEV) {
             last_name: 'Dev',
             username: 'local_developer',
             language_code: 'en',
-            allows_write_to_pm: true
+            allows_write_to_pm: true,
+            photo_url: 'https://cdn4.iconfinder.com/data/icons/avatars-xmas-giveaway/128/batman_hero_avatar_comics-512.png'
         };
 
         const mockInitData = new URLSearchParams({
