@@ -194,6 +194,7 @@ export class StorageService {
         if (!this.data.profile) {
             this.data.profile = {
                 isPublic: false,
+                showFullHistory: false,
                 telegramUserId: userId || 0,
                 telegramUsername: username,
                 photoUrl: photoUrl,

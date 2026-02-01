@@ -13,6 +13,7 @@ export interface WorkoutSet {
 
 export interface UserProfile {
     isPublic: boolean;
+    showFullHistory?: boolean;
     displayName?: string;
     photoUrl?: string;
     telegramUsername?: string;
@@ -34,6 +35,8 @@ export interface PublicProfileData {
         date: string;
         exerciseCount: number;
     }[];
+    logs?: WorkoutSet[];
+    workoutTypes?: WorkoutType[];
 }
 
 export interface AppData {

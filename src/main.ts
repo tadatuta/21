@@ -4,7 +4,7 @@ import './styles/components.css';
 import './styles/profile.css';
 import './components/navigation/navigation.css';
 import { storage, SyncStatus } from './storage/storage';
-import { WorkoutSet, PublicProfileData } from './types';
+import { WorkoutSet, PublicProfileData, WorkoutType } from './types';
 
 const WEBAPP = (window as any).Telegram?.WebApp;
 
@@ -176,9 +176,6 @@ function renderMainPage() {
 function renderLogsList() {
   const allLogs = storage.getLogs();
   const types = storage.getWorkoutTypes();
-
-  if (allLogs.length === 0) return '<p class="hint">Пока нет записей</p>';
-
   const { start, end } = getWeekRange(currentWeekOffset);
 
   const weekLogs = allLogs.filter(log => {
@@ -186,12 +183,16 @@ function renderLogsList() {
     return logDate >= start && logDate <= end;
   });
 
-  if (weekLogs.length === 0) return '<p class="hint">Нет записей за этот период</p>';
+  return generateLogsListHtml(weekLogs, types, true);
+}
+
+function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditable: boolean) {
+  if (logs.length === 0) return '<p class="hint">Нет записей за этот период</p>';
 
   // Group by day
   const groupsByDay: Map<string, WorkoutSet[]> = new Map();
   // Sort logs by date descending
-  [...weekLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(log => {
+  [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(log => {
     const d = new Date(log.date);
     const dateKey = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
     if (!groupsByDay.has(dateKey)) groupsByDay.set(dateKey, []);
@@ -204,7 +205,7 @@ function renderLogsList() {
     html += `<div class="log-day">`;
     html += `<div class="log-day__header">
       <span>${dateLabel}</span>
-      <button class="share-btn" data-date="${dayDateStr}" title="Поделиться">📤</button>
+      ${isEditable ? `<button class="share-btn" data-date="${dayDateStr}" title="Поделиться">📤</button>` : ''}
     </div>`;
 
     // Group by exercise within day (latest exercise group first)
@@ -229,10 +230,12 @@ function renderLogsList() {
                   <span class="log-set__times">×</span>
                   <span class="log-set__reps">${set.reps}</span>
                 </div>
+                ${isEditable ? `
                 <div class="log-set__actions">
                   <button class="log-set__edit" data-id="${set.id}">✏️</button>
                   <button class="log-set__delete" data-id="${set.id}">×</button>
                 </div>
+                ` : ''}
               </div>
             `).join('')}
           </div>
@@ -304,6 +307,16 @@ function renderProfileSettingsPage() {
             </div>
             <label class="toggle-switch">
               <input type="checkbox" id="profile-public-toggle" ${isPublic ? 'checked' : ''}>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="toggle-row" style="margin-top: 12px;">
+            <div class="toggle-label">
+              <span class="toggle-label-text">Показывать все упражнения</span>
+              <span class="toggle-label-hint">Подробный список упражнений в публичном профиле</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="profile-history-toggle" ${profile?.showFullHistory ? 'checked' : ''}>
               <span class="toggle-slider"></span>
             </label>
           </div>
@@ -420,6 +433,15 @@ function renderPublicProfilePage() {
               <span class="activity-count">${a.exerciseCount} упражнений</span>
             </div>
           `).join('')}
+        </div>
+      ` : ''}
+
+      ${profile.logs && profile.logs.length > 0 && profile.workoutTypes ? `
+        <div class="recent-logs">
+          <h2 class="subtitle">История тренировок</h2>
+          <div id="logs-list">
+            ${generateLogsListHtml(profile.logs, profile.workoutTypes, false)}
+          </div>
         </div>
       ` : ''}
     </div>
@@ -705,10 +727,12 @@ function bindPageEvents() {
     const saveBtn = document.getElementById('save-profile-btn');
     saveBtn?.addEventListener('click', async () => {
       const toggle = document.getElementById('profile-public-toggle') as HTMLInputElement;
+      const historyToggle = document.getElementById('profile-history-toggle') as HTMLInputElement;
       const nameInput = document.getElementById('profile-display-name') as HTMLInputElement;
 
       await storage.updateProfileSettings({
         isPublic: toggle?.checked ?? false,
+        showFullHistory: historyToggle?.checked ?? false,
         displayName: nameInput?.value || undefined,
       });
       render();
