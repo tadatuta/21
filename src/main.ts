@@ -19,10 +19,28 @@ let selectedStatType = 'all';
 let editingLogId: string | null = null;
 let viewingProfileIdentifier: string | null = null;
 let loadedPublicProfile: PublicProfileData | null = null;
+let profileLoadFailed = false;
 
 function navigate(page: Page) {
   currentPage = page;
   render();
+}
+
+// Toast notification
+let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+function showToast(message: string) {
+  let toastEl = document.querySelector('.toast');
+  if (!toastEl) {
+    toastEl = document.createElement('div');
+    toastEl.className = 'toast';
+    document.body.appendChild(toastEl);
+  }
+  toastEl.textContent = message;
+  toastEl.classList.add('visible');
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    toastEl?.classList.remove('visible');
+  }, 2000);
 }
 
 function render() {
@@ -233,7 +251,7 @@ function renderProfileSettingsPage() {
   const uniqueDays = new Set(logs.map(l => l.date.split('T')[0])).size;
 
   return `
-    <div class="page-content">
+    <div class="page-content profile-page">
       <h1 class="title">Профиль</h1>
       
       <div class="profile-header">
@@ -266,7 +284,7 @@ function renderProfileSettingsPage() {
           <div class="settings-section">
             <div class="settings-section-title">Ссылка на профиль</div>
             <div class="profile-link-section">
-              <div class="profile-link-url">${profileUrl}</div>
+              <a href="${profileUrl}" target="_blank" class="profile-link-url">${profileUrl}</a>
               <div class="profile-link-actions">
                 <button class="button button_secondary" id="copy-profile-link">Копировать</button>
                 <button class="button" id="share-profile-link">Поделиться</button>
@@ -289,7 +307,7 @@ function renderProfileSettingsPage() {
           </div>
         </div>
 
-        <button class="button" id="save-profile-btn" style="margin-top: 16px;">Сохранить</button>
+        <button class="button" id="save-profile-btn">Сохранить</button>
       </div>
     </div>
   `;
@@ -308,6 +326,16 @@ function renderPublicProfilePage() {
   }
 
   if (!loadedPublicProfile) {
+    if (profileLoadFailed) {
+      return `
+        <div class="page-content">
+          <div class="profile-not-found">
+            <div class="profile-not-found-icon">🔒</div>
+            <div class="profile-not-found-text">Профиль скрыт или не существует</div>
+          </div>
+        </div>
+      `;
+    }
     return `
       <div class="page-content">
         <div class="profile-loading">Загрузка профиля...</div>
@@ -317,7 +345,7 @@ function renderPublicProfilePage() {
 
   const profile = loadedPublicProfile;
   return `
-    <div class="page-content">
+    <div class="page-content profile-page">
       <div class="profile-header">
         <div class="profile-avatar">${profile.displayName.charAt(0).toUpperCase()}</div>
         <div class="profile-name">${profile.displayName}</div>
@@ -641,7 +669,7 @@ function bindPageEvents() {
       const identifier = storage.getProfileIdentifier();
       const profileUrl = `https://t.me/gymgym21bot/app?startapp=profile_${identifier}`;
       navigator.clipboard.writeText(profileUrl).then(() => {
-        alert('Ссылка скопирована');
+        showToast('Ссылка скопирована');
       });
     });
 
@@ -654,7 +682,7 @@ function bindPageEvents() {
         WEBAPP.openTelegramLink(shareUrl);
       } else {
         navigator.clipboard.writeText(profileUrl).then(() => {
-          alert('Ссылка скопирована');
+          showToast('Ссылка скопирована');
         });
       }
     });
@@ -696,10 +724,14 @@ async function initApp() {
     const identifier = startApp.replace('profile_', '');
     viewingProfileIdentifier = identifier;
     currentPage = 'public-profile';
+    profileLoadFailed = false;
     render();
 
     // Load the public profile
     loadedPublicProfile = await storage.getPublicProfile(identifier);
+    if (!loadedPublicProfile) {
+      profileLoadFailed = true;
+    }
     render();
   } else {
     render();
