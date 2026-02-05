@@ -335,10 +335,11 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
     const singleWorkoutId = sortedWorkoutIds.length === 1 ? sortedWorkoutIds[0] : null;
     const singleWorkout = singleWorkoutId ? workouts.find(w => w.id === singleWorkoutId) : null;
     const showNameInHeader = singleWorkout && singleWorkout.name;
+    const singleWorkoutDuration = singleWorkout ? Math.round(storage.getWorkoutDuration(singleWorkout)) : 0;
 
     html += `<div class="log-day">`;
     html += `<div class="log-day__header">
-      <span>${dateLabel}${showNameInHeader ? ` • ${singleWorkout.name}` : ''}</span>
+      <span>${dateLabel}${showNameInHeader ? ` • ${singleWorkout.name}` : ''}${singleWorkout ? ` • ${singleWorkoutDuration} мин` : ''}</span>
       ${isEditable ? `<button class="share-btn" data-date="${dayDateStr}" title="Поделиться">📤</button>` : ''}
     </div>`;
 
@@ -354,13 +355,11 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
       const hideSubheader = sortedWorkoutIds.length === 1 && (showNameInHeader || !workout?.name);
 
       if (!hideSubheader) {
-        const timeStart = workout ? new Date(workout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        const timeEnd = workout && workout.endTime ? new Date(workout.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        const duration = (timeStart && timeEnd) ? `${timeStart} - ${timeEnd}` : timeStart;
+        const duration = workout ? Math.round(storage.getWorkoutDuration(workout)) : 0;
 
         html += `<h3 class="workout-subheader">
                 ${workout?.name || 'Тренировка'} 
-                <span class="workout-subheader__time">${duration}</span>
+                <span class="workout-subheader__time">${duration} мин</span>
             </h3>`;
       }
 

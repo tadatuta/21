@@ -272,6 +272,28 @@ export class StorageService {
         }
     }
 
+    getWorkoutDuration(workout: WorkoutSession): number {
+        const start = new Date(workout.startTime).getTime();
+        const end = workout.endTime ? new Date(workout.endTime).getTime() : Date.now();
+        let totalTime = end - start;
+
+        // Subtract pause intervals
+        workout.pauseIntervals.forEach(interval => {
+            const pStart = new Date(interval.start).getTime();
+            const pEnd = interval.end ? new Date(interval.end).getTime() : (workout.status === 'paused' ? Date.now() : end);
+            // Verify interval is within [start, end] to be safe, though usage implies it is.
+            if (pEnd > pStart) {
+                totalTime -= (pEnd - pStart);
+            }
+        });
+
+        // Ensure non-negative (clock skew safety)
+        const minutes = Math.floor(Math.max(0, totalTime) / 60000);
+
+        // If it's less than 1 minute but has started, maybe show 1? Or 0 is fine.
+        return minutes;
+    }
+
     private ensureActiveWorkout(): string {
         const active = this.getActiveWorkout();
         if (active) return active.id;
