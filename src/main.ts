@@ -22,6 +22,7 @@ let editingLogId: string | null = null;
 let viewingProfileIdentifier: string | null = null;
 let loadedPublicProfile: PublicProfileData | null = null;
 let profileLoadFailed = false;
+let lastAddedLogId: string | null = null;
 
 // Workout UI state
 let isStartingWorkout = false;
@@ -381,7 +382,7 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
               <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
               <div class="log-exercise__sets">
                 ${sets.map(set => `
-                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''}">
+                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''} ${set.id === lastAddedLogId ? 'log-set_new' : ''}">
                     <div class="log-set__info">
                       <span class="log-set__weight">${set.weight} кг</span>
                       <span class="log-set__times">×</span>
@@ -825,9 +826,11 @@ function bindPageEvents() {
           editingLogId = null;
         }
       } else {
-        await storage.addLog(logData);
+        const newLog = await storage.addLog(logData);
+        lastAddedLogId = newLog.id;
       }
       render();
+      lastAddedLogId = null;
     });
 
     const duplicateBtn = document.getElementById('duplicate-last-btn');
@@ -835,12 +838,14 @@ function bindPageEvents() {
       const logs = storage.getLogs();
       const lastLog = logs[logs.length - 1];
       if (lastLog) {
-        await storage.addLog({
+        const newLog = await storage.addLog({
           workoutTypeId: lastLog.workoutTypeId,
           weight: lastLog.weight,
           reps: lastLog.reps
         });
+        lastAddedLogId = newLog.id;
         render();
+        lastAddedLogId = null;
       }
     });
 
