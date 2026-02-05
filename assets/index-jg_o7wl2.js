@@ -47,13 +47,13 @@ var P=Object.defineProperty;var R=(s,t,e)=>t in s?P(s,t,{enumerable:!0,configura
       <div class="recent-logs">
         <div class="recent-logs__header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
            <button class="icon-btn" id="prev-week-btn">◀️</button>
-           <div style="position: relative; display: flex; align-items: center; justify-content: center; padding: 4px 8px; margin: 0 4px; border-radius: 8px; cursor: pointer; transition: background-color 0.2s;" onclick="event.stopPropagation()">
-             <h2 class="subtitle" style="margin: 0; display: flex; align-items: center; gap: 8px;" id="calendar-trigger">
+           <label style="display: flex; align-items: center; justify-content: center; padding: 4px 8px; margin: 0 4px; border-radius: 8px; cursor: pointer; position: relative;">
+             <h2 class="subtitle" style="margin: 0; display: flex; align-items: center; gap: 8px;">
                ${w===0?"Последние 7 дней":n}
                <span style="font-size: 1rem;">📅</span>
              </h2>
-             <input type="date" id="week-date-picker" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; z-index: 10; cursor: pointer;" max="${new Date().toISOString().split("T")[0]}" onclick="event.stopPropagation()">
-           </div>
+             <input type="date" id="week-date-picker" style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; z-index: 10;" max="${new Date().toISOString().split("T")[0]}" onclick="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+           </label>
            <button class="icon-btn" id="next-week-btn" ${w===0?"disabled":""} style="${w===0?"opacity: 0.3; cursor: default;":""}">▶️</button>
         </div>
         <div id="logs-list">
