@@ -3,6 +3,7 @@ import { AppData, WorkoutType, WorkoutSet, UserProfile, PublicProfileData, Worko
 const STORAGE_KEY = 'gym_twa_data';
 const SERVER_URL = 'https://functions.yandexcloud.net/d4ehnqvq3a8fo55t7tj4';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WEBAPP = (window as any).Telegram?.WebApp;
 
 const defaultData: AppData = {

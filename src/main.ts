@@ -6,7 +6,9 @@ import './components/navigation/navigation.css';
 import { storage, SyncStatus } from './storage/storage';
 import { WorkoutSet, PublicProfileData, WorkoutType } from './types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WEBAPP = (window as any).Telegram?.WebApp;
+
 
 if (WEBAPP) {
   WEBAPP.ready();
@@ -657,7 +659,7 @@ function renderStatsPage() {
   `;
 }
 
-function renderSimpleChart(logs: any[]) {
+function renderSimpleChart(logs: WorkoutSet[]) {
   if (logs.length < 2) return '<p class="hint" style="text-align: center">Мало данных для графика</p>';
 
   // Sort by date

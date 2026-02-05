@@ -1,5 +1,6 @@
 // Mock Telegram WebApp for local development
 if (import.meta.env.DEV) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as any;
 
     // Ensure Telegram object exists
@@ -65,11 +66,11 @@ if (import.meta.env.DEV) {
             close: () => console.log('[MockTg] WebApp.close()'),
             enableClosingConfirmation: () => console.log('[MockTg] enableClosingConfirmation'),
             disableClosingConfirmation: () => console.log('[MockTg] disableClosingConfirmation'),
-            isVersionAtLeast: (_ver: string) => true,
+            isVersionAtLeast: () => true,
 
-            onEvent: (eventType: string, _callback: Function) => console.log(`[MockTg] onEvent: ${eventType}`),
-            offEvent: (eventType: string, _callback: Function) => console.log(`[MockTg] offEvent: ${eventType}`),
-            sendData: (data: any) => console.log(`[MockTg] sendData:`, data),
+            onEvent: (eventType: string) => console.log(`[MockTg] onEvent: ${eventType}`),
+            offEvent: (eventType: string) => console.log(`[MockTg] offEvent: ${eventType}`),
+            sendData: (data: string) => console.log(`[MockTg] sendData:`, data),
 
             // UI Components
             BackButton: {
@@ -87,15 +88,15 @@ if (import.meta.env.DEV) {
                 isActive: true,
                 isProgressVisible: false,
                 setText: (text: string) => console.log(`[MockTg] MainButton.setText: ${text}`),
-                onClick: (_cb: Function) => console.log('[MockTg] MainButton.onClick'),
-                offClick: (_cb: Function) => console.log('[MockTg] MainButton.offClick'),
+                onClick: () => console.log('[MockTg] MainButton.onClick'),
+                offClick: () => console.log('[MockTg] MainButton.offClick'),
                 show: () => console.log('[MockTg] MainButton.show()'),
                 hide: () => console.log('[MockTg] MainButton.hide()'),
                 enable: () => console.log('[MockTg] MainButton.enable()'),
                 disable: () => console.log('[MockTg] MainButton.disable()'),
                 showProgress: () => console.log('[MockTg] MainButton.showProgress()'),
                 hideProgress: () => console.log('[MockTg] MainButton.hideProgress()'),
-                setParams: (params: any) => console.log('[MockTg] MainButton.setParams:', params),
+                setParams: (params: Record<string, unknown>) => console.log('[MockTg] MainButton.setParams:', params),
             },
 
             // Telegram link opening
