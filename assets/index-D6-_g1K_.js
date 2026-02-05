@@ -6,23 +6,23 @@ var at=Object.defineProperty;var it=(s,t,e)=>t in s?at(s,t,{enumerable:!0,config
     `,i+="</div>",i}function G(s){const t=new Map;s.forEach(i=>{const n=i.date.split("T")[0],o=i.weight*i.reps;t.set(n,(t.get(n)||0)+o)});const e=Array.from(t.keys()).sort().slice(-10);if(e.length<2)return'<p class="hint">Недостаточно данных для графика объема</p>';const a=e.map(i=>({label:new Date(i).toLocaleDateString(void 0,{day:"numeric",month:"short"}),value:t.get(i)}));return gt(a,"кг")}function ut(s){const t=Array.from(s.keys()).sort();if(t.length<2)return'<p class="hint">Недостаточно данных для графика 1RM</p>';const e=t.map(a=>({label:new Date(a).toLocaleDateString(void 0,{day:"numeric",month:"short"}),value:s.get(a)}));return Q(e,"кг")}function pt(s){const t=s.filter(a=>a.status==="finished"&&a.endTime).sort((a,i)=>new Date(a.startTime).getTime()-new Date(i.startTime).getTime()).slice(-10);if(t.length<2)return'<p class="hint">Недостаточно данных для графика продолжительности</p>';const e=t.map(a=>{const i=new Date(a.startTime).getTime(),n=new Date(a.endTime).getTime();let o=(n-i)/1e3/60;return a.pauseIntervals&&a.pauseIntervals.forEach(r=>{const l=new Date(r.start).getTime(),c=r.end?new Date(r.end).getTime():n;o-=(c-l)/1e3/60}),{label:new Date(a.startTime).toLocaleDateString(void 0,{day:"numeric",month:"short"}),value:Math.round(o)}});return Q(e,"мин")}function gt(s,t){const i=Math.max(...s.map(o=>o.value))*1.1;return`
         <svg width="100%" height="150" preserveAspectRatio="none">
             ${s.map((o,r)=>{const l=o.value/i*100,c=r/s.length*100,g=1/s.length*80;return`
-            <rect x="${c+5}%" y="${100-l}%" width="${g}%" height="${l}%" fill="var(--color-primary)" rx="2" opacity="0.8">
+            <rect x="${c+5}%" y="${100-l}%" width="${g}%" height="${l}%" fill="var(--color-button)" rx="2" opacity="0.8">
                <title>${o.label}: ${o.value}${t}</title>
             </rect>
-            <text x="${c+5+g/2}%" y="95%" font-size="10" text-anchor="middle" fill="var(--color-text-secondary)" style="pointer-events: none;">
+            <text x="${c+5+g/2}%" y="95%" font-size="10" text-anchor="middle" fill="var(--color-text)" style="pointer-events: none;">
                 ${o.label}
             </text>
         `}).join("")}
         </svg>
     `}function Q(s,t){const n=s.map(u=>u.value),o=Math.min(...n),r=Math.max(...n),l=r-o||1,c=u=>20+u/(s.length-1)*(400-2*20),g=u=>130-(u-o)/l*(150-2*20),v=s.map((u,k)=>`${c(k)},${g(u.value)}`).join(" "),p=s.map((u,k)=>`
-        <circle cx="${c(k)}" cy="${g(u.value)}" r="4" fill="var(--color-bg)" stroke="var(--color-primary)" stroke-width="2">
+        <circle cx="${c(k)}" cy="${g(u.value)}" r="4" fill="var(--color-bg)" stroke="var(--color-button)" stroke-width="2">
             <title>${u.label}: ${u.value}${t}</title>
         </circle>
     `).join("");return`
         <svg viewBox="0 0 400 150" class="chart">
              <polyline
                 fill="none"
-                stroke="var(--color-primary)"
+                stroke="var(--color-button)"
                 stroke-width="3"
                 stroke-linejoin="round"
                 stroke-linecap="round"
@@ -30,7 +30,7 @@ var at=Object.defineProperty;var it=(s,t,e)=>t in s?at(s,t,{enumerable:!0,config
             />
             ${p}
         </svg>
-        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; color: var(--color-text-secondary);">
+        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px; color: var(--color-hint);">
             <span>${Math.round(o)}${t}</span>
             <span>${Math.round(r)}${t}</span>
         </div>
