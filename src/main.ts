@@ -101,6 +101,7 @@ function renderPage() {
 
 
 let currentWeekOffset = 0;
+let lastCalendarValue = '';
 
 function getWeekRange(offset: number) {
   const now = new Date();
@@ -162,7 +163,13 @@ function renderMainPage() {
       <div class="recent-logs">
         <div class="recent-logs__header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
            <button class="icon-btn" id="prev-week-btn">◀️</button>
-           <h2 class="subtitle" style="margin: 0;">${currentWeekOffset === 0 ? 'Последние 7 дней' : label}</h2>
+           <div id="week-label-container" style="display: flex; align-items: center; gap: 8px; position: relative;">
+             <h2 class="subtitle" style="margin: 0;">${currentWeekOffset === 0 ? 'Последние 7 дней' : label}</h2>
+             <span style="font-size: 18px; position: relative; display: inline-block;">
+               📅
+               <input type="date" id="calendar-input" value="${lastCalendarValue}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+             </span>
+           </div>
            <button class="icon-btn" id="next-week-btn" ${currentWeekOffset === 0 ? 'disabled' : ''} style="${currentWeekOffset === 0 ? 'opacity: 0.3; cursor: default;' : ''}">▶️</button>
         </div>
         <div id="logs-list">
@@ -184,6 +191,62 @@ function renderLogsList() {
   });
 
   return generateLogsListHtml(weekLogs, types, true);
+}
+
+// Partial update for week navigation - updates only the header label and logs list
+function updateWeekView() {
+  const logsListEl = document.getElementById('logs-list');
+  const weekLabelEl = document.querySelector('#week-label-container .subtitle');
+
+  if (logsListEl) {
+    logsListEl.innerHTML = renderLogsList();
+    // Re-bind log item events
+    bindLogItemEvents();
+  }
+
+  if (weekLabelEl) {
+    const { label } = getWeekRange(currentWeekOffset);
+    weekLabelEl.textContent = currentWeekOffset === 0 ? 'Последние 7 дней' : label;
+  }
+
+  // Update next button state
+  const nextWeekBtn = document.getElementById('next-week-btn') as HTMLButtonElement;
+  if (nextWeekBtn) {
+    nextWeekBtn.disabled = currentWeekOffset === 0;
+    nextWeekBtn.style.opacity = currentWeekOffset === 0 ? '0.3' : '';
+    nextWeekBtn.style.cursor = currentWeekOffset === 0 ? 'default' : '';
+  }
+}
+
+// Bind events for log items (edit, delete, share buttons)
+function bindLogItemEvents() {
+  document.querySelectorAll('.log-set__delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      if (id) {
+        if (editingLogId === id) editingLogId = null;
+        await storage.deleteLog(id);
+        render();
+      }
+    });
+  });
+
+  document.querySelectorAll('.log-set__edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingLogId = btn.getAttribute('data-id');
+      render();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  document.querySelectorAll('.share-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const dateStr = btn.getAttribute('data-date');
+      if (dateStr) {
+        shareWorkout(dateStr);
+      }
+    });
+  });
 }
 
 function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditable: boolean) {
@@ -681,15 +744,38 @@ function bindPageEvents() {
     const prevWeekBtn = document.getElementById('prev-week-btn');
     prevWeekBtn?.addEventListener('click', () => {
       currentWeekOffset++;
-      render();
+      updateWeekView();
     });
 
     const nextWeekBtn = document.getElementById('next-week-btn');
     nextWeekBtn?.addEventListener('click', () => {
       if (currentWeekOffset > 0) {
         currentWeekOffset--;
-        render();
+        updateWeekView();
       }
+    });
+
+    // Calendar navigation
+    const calendarInput = document.getElementById('calendar-input') as HTMLInputElement;
+
+    calendarInput?.addEventListener('change', () => {
+      // Only process if value actually changed and is not empty
+      if (!calendarInput.value || calendarInput.value === lastCalendarValue) {
+        return;
+      }
+      lastCalendarValue = calendarInput.value;
+
+      const selectedDate = new Date(calendarInput.value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Calculate the week offset for the selected date
+      const diffTime = today.getTime() - selectedDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      currentWeekOffset = Math.max(0, Math.floor(diffDays / 7));
+
+      // Use partial update instead of full render
+      updateWeekView();
     });
   }
 
