@@ -23,6 +23,7 @@ let viewingProfileIdentifier: string | null = null;
 let loadedPublicProfile: PublicProfileData | null = null;
 let profileLoadFailed = false;
 let lastAddedLogId: string | null = null;
+let editingTypeId: string | null = null;
 
 // Workout UI state
 let isStartingWorkout = false;
@@ -410,23 +411,33 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
 
 function renderSettingsPage() {
   const types = storage.getWorkoutTypes();
+  const editingType = editingTypeId ? types.find(t => t.id === editingTypeId) : null;
+
   return `
     <div class="page-content">
       <h1 class="title">Настройки</h1>
       <div class="settings-section">
+        <h2 class="subtitle">${editingTypeId ? 'Редактирование типа' : 'Добавить тип тренировки'}</h2>
+        <form class="add-type-form" id="add-type-form" style="margin-bottom: 24px;">
+          <div style="display: flex; gap: 8px;">
+            <input class="input" type="text" id="new-type-name" placeholder="Название (напр. Жим гантелей)" required value="${editingType ? editingType.name : ''}">
+            <button class="button" type="submit">${editingTypeId ? 'Сохранить' : 'Добавить'}</button>
+          </div>
+          ${editingTypeId ? `<button class="button button_secondary" type="button" id="cancel-edit-type-btn" style="margin-top: 8px; width: 100%;">Отмена</button>` : ''}
+        </form>
+
         <h2 class="subtitle">Типы тренировок</h2>
         <div class="type-list">
           ${types.map(t => `
             <div class="type-item">
               <span>${t.name}</span>
-              <button class="type-item__delete" data-id="${t.id}">Удалить</button>
+              <div style="display: flex; gap: 8px;">
+                <button class="type-item__edit icon-btn" data-id="${t.id}" title="Редактировать">✏️</button>
+                <button class="type-item__delete icon-btn" data-id="${t.id}" title="Удалить">×</button>
+              </div>
             </div>
           `).join('')}
         </div>
-        <form class="add-type-form" id="add-type-form">
-          <input class="input" type="text" id="new-type-name" placeholder="Название (напр. Жим гантелей)" required>
-          <button class="button button_secondary" type="submit">Добавить</button>
-        </form>
       </div>
     </div>
   `;
@@ -928,15 +939,37 @@ function bindPageEvents() {
       e.preventDefault();
       const input = document.getElementById('new-type-name') as HTMLInputElement;
       if (input.value) {
-        await storage.addWorkoutType(input.value);
+        if (editingTypeId) {
+          await storage.updateWorkoutType(editingTypeId, input.value);
+          editingTypeId = null;
+        } else {
+          await storage.addWorkoutType(input.value);
+        }
         render();
       }
+    });
+
+    const cancelEditBtn = document.getElementById('cancel-edit-type-btn');
+    cancelEditBtn?.addEventListener('click', () => {
+      editingTypeId = null;
+      render();
+    });
+
+    document.querySelectorAll('.type-item__edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingTypeId = btn.getAttribute('data-id');
+        render();
+        // Focus input
+        const input = document.getElementById('new-type-name') as HTMLInputElement;
+        input?.focus();
+      });
     });
 
     document.querySelectorAll('.type-item__delete').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         if (id && confirm('Удалить этот тип тренировки?')) {
+          if (editingTypeId === id) editingTypeId = null;
           await storage.deleteWorkoutType(id);
           render();
         }

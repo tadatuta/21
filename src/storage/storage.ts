@@ -203,6 +203,14 @@ export class StorageService {
         await this.persist();
     }
 
+    async updateWorkoutType(id: string, name: string): Promise<void> {
+        const typeStr = this.data.workoutTypes.find(t => t.id === id);
+        if (typeStr) {
+            typeStr.name = name;
+            await this.persist();
+        }
+    }
+
     getLogs(): WorkoutSet[] {
         return this.data.logs;
     }
