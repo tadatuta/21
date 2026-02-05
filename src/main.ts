@@ -5,6 +5,10 @@ import './styles/profile.css';
 import './components/navigation/navigation.css';
 import { storage, SyncStatus } from './storage/storage';
 import { WorkoutSet, PublicProfileData, WorkoutType } from './types';
+import './styles/stats.css';
+import { getOneRepMaxByDate, getWorkoutDates, getDurationStats } from './utils/statistics';
+import { renderHeatmap } from './components/stats/Heatmap';
+import { renderVolumeChart, render1RMChart, renderDurationChart } from './components/stats/Charts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WEBAPP = (window as any).Telegram?.WebApp;
@@ -24,6 +28,7 @@ let loadedPublicProfile: PublicProfileData | null = null;
 let profileLoadFailed = false;
 let lastAddedLogId: string | null = null;
 let editingTypeId: string | null = null;
+let currentStatsTab: 'overview' | 'progress' = 'overview';
 
 // Workout UI state
 let isStartingWorkout = false;
@@ -620,6 +625,7 @@ function renderPublicProfilePage() {
 
 function renderStatsPage() {
   const logs = storage.getLogs();
+  const workouts = storage.getWorkouts();
   const types = storage.getWorkoutTypes();
 
   if (logs.length === 0) {
@@ -631,90 +637,102 @@ function renderStatsPage() {
     `;
   }
 
-  const filteredLogs = selectedStatType === 'all'
-    ? logs
-    : logs.filter(l => l.workoutTypeId === selectedStatType);
+  // Calculate generic stats
+  const totalVolume = logs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
+  const totalReps = logs.reduce((acc, l) => acc + l.reps, 0);
+  const durationStats = getDurationStats(workouts);
 
-  const totalVolume = filteredLogs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
-  const totalReps = filteredLogs.reduce((acc, l) => acc + l.reps, 0);
-
-  return `
+  let html = `
     <div class="page-content">
       <h1 class="title">Статистика</h1>
-      
-      <div class="form-group">
-        <label class="label">Тип тренировки</label>
-        <select class="select" id="stat-type-select">
-          <option value="all">Все тренировки</option>
-          ${types.map(t => `<option value="${t.id}" ${selectedStatType === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
-        </select>
+      <div class="stats-tabs">
+        <button class="stats-tab ${currentStatsTab === 'overview' ? 'active' : ''}" data-tab="overview">Обзор</button>
+        <button class="stats-tab ${currentStatsTab === 'progress' ? 'active' : ''}" data-tab="progress">Прогресс</button>
       </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-card__label">Объем (${selectedStatType === 'all' ? 'все' : 'тип'})</div>
-          <div class="stat-card__value">${Math.round(totalVolume)} кг</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-card__label">Повторений</div>
-          <div class="stat-card__value">${totalReps}</div>
-        </div>
-      </div>
-
-      <div class="charts-section">
-        <h2 class="subtitle">Прогресс (макс. вес)</h2>
-        <div class="chart-container">
-           ${renderSimpleChart(filteredLogs)}
-        </div>
-      </div>
-    </div>
   `;
+
+  if (currentStatsTab === 'overview') {
+    const dates = getWorkoutDates(workouts, logs);
+
+    html += `
+        <div class="stats-section">
+            <h2 class="subtitle">Активность</h2>
+            ${renderHeatmap(dates)}
+        </div>
+
+        <div class="stats-summary">
+            <div class="stat-metric">
+                <div class="stat-metric__label">Всего тренировок</div>
+                <div class="stat-metric__value">${dates.size}</div>
+            </div>
+            <div class="stat-metric">
+                <div class="stat-metric__label">Сред. длительность</div>
+                <div class="stat-metric__value">${durationStats.averageMinutes}<span class="stat-metric__unit">мин</span></div>
+            </div>
+             <div class="stat-metric">
+                <div class="stat-metric__label">Общий объем</div>
+                <div class="stat-metric__value">${Math.round(totalVolume / 1000)}<span class="stat-metric__unit">т</span></div>
+            </div>
+            <div class="stat-metric">
+                <div class="stat-metric__label">Всего повторений</div>
+                <div class="stat-metric__value">${totalReps}</div>
+            </div>
+        </div>
+
+        <div class="charts-section">
+            <h2 class="subtitle">Длительность тренировок</h2>
+            <div class="chart-container">
+                ${renderDurationChart(workouts)}
+            </div>
+        </div>
+     `;
+  } else {
+    // Progress Tab
+    html += `
+        <div class="form-group">
+            <label class="label">Упражнение</label>
+            <select class="select" id="stat-type-select">
+                <option value="all">Все упражнения (Объем)</option>
+                ${types.map(t => `<option value="${t.id}" ${selectedStatType === t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+            </select>
+        </div>
+    `;
+
+    if (selectedStatType === 'all') {
+      html += `
+            <div class="charts-section">
+                <h2 class="subtitle">Общий объем по дням</h2>
+                <div class="chart-container">
+                    ${renderVolumeChart(logs)}
+                </div>
+            </div>
+        `;
+    } else {
+      const typeLogs = logs.filter(l => l.workoutTypeId === selectedStatType);
+      const oneRepMaxData = getOneRepMaxByDate(typeLogs, selectedStatType);
+
+      html += `
+             <div class="charts-section">
+                <h2 class="subtitle">Прогресс силовых (1RM)</h2>
+                <div class="chart-container">
+                    ${render1RMChart(oneRepMaxData)}
+                </div>
+            </div>
+            
+            <div class="charts-section" style="margin-top: 24px;">
+                <h2 class="subtitle">Объем нагрузки</h2>
+                 <div class="chart-container">
+                    ${renderVolumeChart(typeLogs)}
+                </div>
+            </div>
+        `;
+    }
+  }
+
+  html += `</div>`;
+  return html;
 }
 
-function renderSimpleChart(logs: WorkoutSet[]) {
-  if (logs.length < 2) return '<p class="hint" style="text-align: center">Мало данных для графика</p>';
-
-  // Sort by date
-  const sorted = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  // Get max weight per day or just points
-  const points = sorted.map(l => l.weight);
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const range = max - min || 1;
-
-  const width = 400;
-  const height = 150;
-  const padding = 20;
-
-  const svgPoints = points.map((p, i) => {
-    const x = padding + (i / (points.length - 1)) * (width - 2 * padding);
-    const y = height - padding - ((p - min) / range) * (height - 2 * padding);
-    return `${x},${y}`;
-  }).join(' ');
-
-  return `
-    <svg viewBox="0 0 ${width} ${height}" class="chart">
-      <polyline
-        fill="none"
-        stroke="var(--color-link)"
-        stroke-width="3"
-        stroke-linejoin="round"
-        stroke-linecap="round"
-        points="${svgPoints}"
-      />
-      ${points.map((p, i) => {
-    const x = padding + (i / (points.length - 1)) * (width - 2 * padding);
-    const y = height - padding - ((p - min) / range) * (height - 2 * padding);
-    return `<circle cx="${x}" cy="${y}" r="4" fill="var(--color-bg)" stroke="var(--color-link)" stroke-width="2" />`;
-  }).join('')}
-    </svg>
-    <div style="display: flex; justify-content: space-between; margin-top: 8px;">
-      <span class="hint">${min}кг</span>
-      <span class="hint">${max}кг</span>
-    </div>
-  `;
-}
 
 function formatWorkoutForShare(dateStr: string): string {
   const allLogs = storage.getLogs();
@@ -1021,6 +1039,25 @@ function bindPageEvents() {
           showToast('Ссылка скопирована');
         });
       }
+    });
+  }
+
+  if (currentPage === 'stats') {
+    const tabs = document.querySelectorAll('.stats-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.getAttribute('data-tab');
+        if (tabId === 'overview' || tabId === 'progress') {
+          currentStatsTab = tabId;
+          render();
+        }
+      });
+    });
+
+    const typeSelect = document.getElementById('stat-type-select');
+    typeSelect?.addEventListener('change', (e) => {
+      selectedStatType = (e.target as HTMLSelectElement).value;
+      render();
     });
   }
 }
