@@ -1,4 +1,4 @@
-import { AppData, WorkoutType, WorkoutSet, UserProfile, PublicProfileData } from '../types';
+import { AppData, WorkoutType, WorkoutSet, UserProfile, PublicProfileData, WorkoutSession } from '../types';
 
 const STORAGE_KEY = 'gym_twa_data';
 const SERVER_URL = 'https://functions.yandexcloud.net/d4ehnqvq3a8fo55t7tj4';
@@ -11,7 +11,8 @@ const defaultData: AppData = {
         { id: '2', name: 'Приседания' },
         { id: '3', name: 'Становая тяга' }
     ],
-    logs: []
+    logs: [],
+    workouts: []
 };
 
 export type SyncStatus = 'idle' | 'saving' | 'success' | 'error';
@@ -24,6 +25,7 @@ export class StorageService {
 
     constructor() {
         this.data = this.loadLocal();
+        this.migrateData();
     }
 
     private getHeaders() {
@@ -65,10 +67,66 @@ export class StorageService {
         const json = localStorage.getItem(STORAGE_KEY);
         if (!json) return defaultData;
         try {
-            return JSON.parse(json);
+            const data = JSON.parse(json);
+            return {
+                ...defaultData,
+                ...data,
+                // Ensure workouts array exists if loading old data
+                workouts: data.workouts || []
+            };
         } catch (e) {
             console.error('Failed to parse storage data', e);
             return defaultData;
+        }
+    }
+
+    private migrateData() {
+        let hasChanges = false;
+
+        // Migration: Group orphans logs into implicit workouts
+        const logsWithoutWorkout = this.data.logs.filter(l => !l.workoutId);
+
+        if (logsWithoutWorkout.length > 0) {
+            hasChanges = true;
+            // Group by day
+            const logsByDay = new Map<string, WorkoutSet[]>();
+
+            logsWithoutWorkout.forEach(log => {
+                const dateKey = log.date.split('T')[0];
+                if (!logsByDay.has(dateKey)) {
+                    logsByDay.set(dateKey, []);
+                }
+                logsByDay.get(dateKey)!.push(log);
+            });
+
+            logsByDay.forEach((dayLogs, dateKey) => {
+                // Create implicit workout for this day
+                const sortedLogs = dayLogs.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                const startTime = sortedLogs[0].date;
+                const endTime = sortedLogs[sortedLogs.length - 1].date;
+
+                const workoutId = `implicit_${dateKey}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+                const newWorkout: WorkoutSession = {
+                    id: workoutId,
+                    startTime,
+                    endTime,
+                    status: 'finished',
+                    isManual: false,
+                    pauseIntervals: []
+                };
+
+                this.data.workouts.push(newWorkout);
+
+                // Update logs
+                dayLogs.forEach(log => {
+                    log.workoutId = workoutId;
+                });
+            });
+        }
+
+        if (hasChanges) {
+            this.saveLocal();
         }
     }
 
@@ -86,7 +144,12 @@ export class StorageService {
             if (response.ok) {
                 const remoteData = await response.json();
                 if (remoteData && (remoteData.workoutTypes || remoteData.logs)) {
-                    this.data = remoteData;
+                    this.data = {
+                        ...this.data,
+                        ...remoteData,
+                        workouts: remoteData.workouts || this.data.workouts
+                    };
+                    this.migrateData(); // Run migration on synced data too
                     this.saveLocal();
                     this.onUpdateCallback?.();
                 }
@@ -143,19 +206,132 @@ export class StorageService {
         return this.data.logs;
     }
 
-    async addLog(log: Omit<WorkoutSet, 'id' | 'date'>): Promise<WorkoutSet> {
+    getWorkouts(): WorkoutSession[] {
+        return this.data.workouts;
+    }
+
+    getActiveWorkout(): WorkoutSession | undefined {
+        return this.data.workouts.find(w => w.status === 'active' || w.status === 'paused');
+    }
+
+    async startWorkout(name?: string): Promise<WorkoutSession> {
+        // Finish any currently active workout
+        const active = this.getActiveWorkout();
+        if (active) {
+            await this.finishWorkout();
+        }
+
+        const newWorkout: WorkoutSession = {
+            id: Date.now().toString(),
+            startTime: new Date().toISOString(),
+            status: 'active',
+            name,
+            isManual: true,
+            pauseIntervals: []
+        };
+
+        this.data.workouts.push(newWorkout);
+        await this.persist();
+        return newWorkout;
+    }
+
+    async pauseWorkout(): Promise<void> {
+        const active = this.getActiveWorkout();
+        if (active && active.status === 'active') {
+            active.status = 'paused';
+            active.pauseIntervals.push({ start: new Date().toISOString() });
+            await this.persist();
+        }
+    }
+
+    async resumeWorkout(): Promise<void> {
+        const active = this.getActiveWorkout();
+        if (active && active.status === 'paused') {
+            active.status = 'active';
+            const lastPause = active.pauseIntervals[active.pauseIntervals.length - 1];
+            if (lastPause && !lastPause.end) {
+                lastPause.end = new Date().toISOString();
+            }
+            await this.persist();
+        }
+    }
+
+    async finishWorkout(): Promise<void> {
+        const active = this.getActiveWorkout();
+        if (active) {
+            active.status = 'finished';
+            active.endTime = new Date().toISOString();
+
+            // Close any open pause interval
+            const lastPause = active.pauseIntervals[active.pauseIntervals.length - 1];
+            if (lastPause && !lastPause.end) {
+                lastPause.end = active.endTime;
+            }
+
+            await this.persist();
+        }
+    }
+
+    private ensureActiveWorkout(): string {
+        const active = this.getActiveWorkout();
+        if (active) return active.id;
+
+        const today = new Date().toISOString().split('T')[0];
+        const workouts = this.data.workouts;
+
+        // Check if the last workout of the day is implicit
+        // Sort workouts by startTime
+        const todaysWorkouts = workouts.filter(w => w.startTime.startsWith(today));
+        const lastWorkout = todaysWorkouts.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
+
+        if (lastWorkout && !lastWorkout.isManual && lastWorkout.status === 'finished') {
+            // Reuse it. Update endTime to now
+            lastWorkout.endTime = new Date().toISOString();
+            this.saveLocal();
+            return lastWorkout.id;
+        }
+
+        // Create new implicit workout
+        const id = `implicit_${today}_${Date.now()}`;
+        const newWorkout: WorkoutSession = {
+            id,
+            startTime: new Date().toISOString(),
+            endTime: new Date().toISOString(),
+            status: 'finished', // Implicit ones are always "done" until extended
+            isManual: false,
+            pauseIntervals: []
+        };
+        this.data.workouts.push(newWorkout);
+
+        return id;
+    }
+
+    async addLog(log: Omit<WorkoutSet, 'id' | 'date' | 'workoutId'>): Promise<WorkoutSet> {
+        const workoutId = this.ensureActiveWorkout();
+
         const newLog: WorkoutSet = {
             ...log,
             id: Date.now().toString(),
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            workoutId
         };
+
         this.data.logs.push(newLog);
+
+        // Update workout end time if it matches the log's workout
+        const workout = this.data.workouts.find(w => w.id === workoutId);
+        if (workout && !workout.isManual) {
+            workout.endTime = newLog.date;
+        }
+
         await this.persist();
         return newLog;
     }
 
     async deleteLog(id: string): Promise<void> {
         this.data.logs = this.data.logs.filter(l => l.id !== id);
+        // We generally don't delete workouts even if empty? Or maybe cleanup?
+        // Let's leave workouts for now.
         await this.persist();
     }
 

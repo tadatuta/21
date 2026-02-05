@@ -296,3 +296,70 @@
     cursor: default;
     opacity: 0.3;
 }
+
+/* Workout Controls */
+.workout-controls {
+    padding: var(--spacing-m);
+    margin-bottom: var(--spacing-l);
+    background-color: var(--color-secondary-bg);
+    border-radius: var(--border-radius);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-m);
+}
+
+.workout-controls__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.workout-status {
+    font-weight: 700;
+    color: var(--color-link);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.workout-status_paused {
+    color: var(--color-hint);
+}
+
+.workout-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.workout-controls__actions {
+    display: flex;
+    gap: var(--spacing-s);
+}
+
+.button_destructive {
+    background-color: #ff3b301a;
+    color: #ff3b30;
+}
+
+.button_destructive:active {
+    background-color: #ff3b3033;
+}
+
+.workout-subheader {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: var(--spacing-m) 0 var(--spacing-s);
+    padding-left: var(--spacing-xs);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.workout-subheader__time {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-hint);
+}

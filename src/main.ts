@@ -21,6 +21,9 @@ let viewingProfileIdentifier: string | null = null;
 let loadedPublicProfile: PublicProfileData | null = null;
 let profileLoadFailed = false;
 
+// Workout UI state
+let isStartingWorkout = false;
+
 function navigate(page: Page) {
   currentPage = page;
   render();
@@ -100,6 +103,51 @@ function renderPage() {
 }
 
 
+
+function renderWorkoutControls() {
+  const activeWorkout = storage.getActiveWorkout();
+
+  if (activeWorkout) {
+    const isPaused = activeWorkout.status === 'paused';
+    return `
+      <div class="workout-controls card">
+        <div class="workout-controls__header">
+          <span class="workout-status ${isPaused ? 'workout-status_paused' : ''}">
+            ${isPaused ? '⏸️ Пауза' : '🔥 Тренировка активна'}
+          </span>
+          ${activeWorkout.name ? `<span class="workout-name">${activeWorkout.name}</span>` : ''}
+        </div>
+        <div class="workout-controls__actions">
+          ${isPaused
+        ? `<button class="button" id="resume-workout-btn">Продолжить</button>`
+        : `<button class="button button_secondary" id="pause-workout-btn">Пауза</button>`
+      }
+          <button class="button button_destructive" id="finish-workout-btn">Завершить</button>
+        </div>
+      </div>
+    `;
+  }
+
+  if (isStartingWorkout) {
+    return `
+      <div class="workout-controls card">
+        <h3 class="subtitle" style="margin-top: 0">Начало тренировки</h3>
+        <form id="start-workout-form" style="display: flex; flex-direction: column; gap: 12px;">
+          <input class="input" type="text" name="workoutName" placeholder="Название (опционально)">
+          <div style="display: flex; gap: 8px;">
+            <button class="button" type="submit">Начать</button>
+            <button class="button button_secondary" type="button" id="cancel-start-workout-btn">Отмена</button>
+          </div>
+        </form>
+      </div>
+    `;
+  }
+
+  return `
+    <button class="button" id="start-workout-btn" style="margin-bottom: 24px;">▶️ Начать тренировку</button>
+  `;
+}
+
 let currentWeekOffset = 0;
 let lastCalendarValue = '';
 
@@ -138,6 +186,7 @@ function renderMainPage() {
 
   return `
     <div class="page-content" id="main-content">
+      ${renderWorkoutControls()}
       <h1 class="title">${editingLogId ? 'Редактирование подхода' : 'Новый подход'}</h1>
       <form class="workout-form" id="log-form">
         <div class="form-group">
@@ -252,58 +301,103 @@ function bindLogItemEvents() {
 function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditable: boolean) {
   if (logs.length === 0) return '<p class="hint">Нет записей за этот период</p>';
 
-  // Group by day
-  const groupsByDay: Map<string, WorkoutSet[]> = new Map();
+  const logsByDay = new Map<string, WorkoutSet[]>();
   // Sort logs by date descending
   [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(log => {
     const d = new Date(log.date);
     const dateKey = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
-    if (!groupsByDay.has(dateKey)) groupsByDay.set(dateKey, []);
-    groupsByDay.get(dateKey)!.push(log);
+    if (!logsByDay.has(dateKey)) logsByDay.set(dateKey, []);
+    logsByDay.get(dateKey)!.push(log);
   });
 
+  const workouts = storage.getWorkouts();
   let html = '';
-  groupsByDay.forEach((dayLogs, dateLabel) => {
+
+  logsByDay.forEach((dayLogs, dateLabel) => {
     const dayDateStr = dayLogs[0]?.date.split('T')[0] || '';
+
+    // Identify workouts in this day
+    const dayWorkouts = new Set<string>();
+    dayLogs.forEach(l => {
+      if (l.workoutId) dayWorkouts.add(l.workoutId);
+    });
+
+    // Sort workouts by time (using stored workout or log time)
+    const sortedWorkoutIds = Array.from(dayWorkouts).sort((a, b) => {
+      const wA = workouts.find(w => w.id === a);
+      const wB = workouts.find(w => w.id === b);
+      const timeA = wA?.startTime || dayLogs.find(l => l.workoutId === a)?.date || '';
+      const timeB = wB?.startTime || dayLogs.find(l => l.workoutId === b)?.date || '';
+      // Descending order for display? Usually logs are descending.
+      return new Date(timeB).getTime() - new Date(timeA).getTime();
+    });
+
+    const singleWorkoutId = sortedWorkoutIds.length === 1 ? sortedWorkoutIds[0] : null;
+    const singleWorkout = singleWorkoutId ? workouts.find(w => w.id === singleWorkoutId) : null;
+    const showNameInHeader = singleWorkout && singleWorkout.name;
+
     html += `<div class="log-day">`;
     html += `<div class="log-day__header">
-      <span>${dateLabel}</span>
+      <span>${dateLabel}${showNameInHeader ? ` • ${singleWorkout.name}` : ''}</span>
       ${isEditable ? `<button class="share-btn" data-date="${dayDateStr}" title="Поделиться">📤</button>` : ''}
     </div>`;
 
-    // Group by exercise within day (latest exercise group first)
-    const exerciseGroups: Map<string, WorkoutSet[]> = new Map();
-    dayLogs.forEach(log => {
-      if (!exerciseGroups.has(log.workoutTypeId)) {
-        exerciseGroups.set(log.workoutTypeId, []);
-      }
-      exerciseGroups.get(log.workoutTypeId)!.push(log);
-    });
+    // Render each workout group
+    sortedWorkoutIds.forEach(workoutId => {
+      const workout = workouts.find(w => w.id === workoutId);
+      const workoutLogs = dayLogs.filter(l => l.workoutId === workoutId);
 
-    exerciseGroups.forEach((sets, typeId) => {
-      const type = types.find(t => t.id === typeId);
-      html += `
-        <div class="log-exercise">
-          <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
-          <div class="log-exercise__sets">
-            ${sets.map(set => `
-              <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''}">
-                <div class="log-set__info">
-                  <span class="log-set__weight">${set.weight} кг</span>
-                  <span class="log-set__times">×</span>
-                  <span class="log-set__reps">${set.reps}</span>
-                </div>
-                ${isEditable ? `
-                <div class="log-set__actions">
-                  <button class="log-set__edit" data-id="${set.id}">✏️</button>
-                  <button class="log-set__delete" data-id="${set.id}">×</button>
-                </div>
-                ` : ''}
+      // Subheader if multiple workouts OR single workout didn't put name in header (e.g. it has start/end time we might want to show?)
+      // Requirements: "Если в этот день было несколько тренировок, выводим их названия в отдельных подзаголовках."
+      // Also implicit workouts might not have names.
+      // Let's hide subheader if it's the ONLY workout and we either showed name or it has no name.
+      const hideSubheader = sortedWorkoutIds.length === 1 && (showNameInHeader || !workout?.name);
+
+      if (!hideSubheader) {
+        const timeStart = workout ? new Date(workout.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const timeEnd = workout && workout.endTime ? new Date(workout.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        const duration = (timeStart && timeEnd) ? `${timeStart} - ${timeEnd}` : timeStart;
+
+        html += `<h3 class="workout-subheader">
+                ${workout?.name || 'Тренировка'} 
+                <span class="workout-subheader__time">${duration}</span>
+            </h3>`;
+      }
+
+      // Group by exercise within workout
+      const exerciseGroups: Map<string, WorkoutSet[]> = new Map();
+      workoutLogs.forEach(log => {
+        if (!exerciseGroups.has(log.workoutTypeId)) {
+          exerciseGroups.set(log.workoutTypeId, []);
+        }
+        exerciseGroups.get(log.workoutTypeId)!.push(log);
+      });
+
+      exerciseGroups.forEach((sets, typeId) => {
+        const type = types.find(t => t.id === typeId);
+        html += `
+            <div class="log-exercise">
+              <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
+              <div class="log-exercise__sets">
+                ${sets.map(set => `
+                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''}">
+                    <div class="log-set__info">
+                      <span class="log-set__weight">${set.weight} кг</span>
+                      <span class="log-set__times">×</span>
+                      <span class="log-set__reps">${set.reps}</span>
+                    </div>
+                    ${isEditable ? `
+                    <div class="log-set__actions">
+                      <button class="log-set__edit" data-id="${set.id}">✏️</button>
+                      <button class="log-set__delete" data-id="${set.id}">×</button>
+                    </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
               </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
+            </div>
+          `;
+      });
     });
 
     html += `</div>`;
@@ -666,6 +760,49 @@ function shareWorkout(dateStr: string) {
 
 function bindPageEvents() {
   if (currentPage === 'main') {
+    // Workout controls events
+    const startWorkoutBtn = document.getElementById('start-workout-btn');
+    startWorkoutBtn?.addEventListener('click', () => {
+      isStartingWorkout = true;
+      render();
+    });
+
+    const cancelStartWorkoutBtn = document.getElementById('cancel-start-workout-btn');
+    cancelStartWorkoutBtn?.addEventListener('click', () => {
+      isStartingWorkout = false;
+      render();
+    });
+
+    const startWorkoutForm = document.getElementById('start-workout-form') as HTMLFormElement;
+    startWorkoutForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(startWorkoutForm);
+      const name = formData.get('workoutName') as string;
+      await storage.startWorkout(name);
+      isStartingWorkout = false;
+      render();
+    });
+
+    const pauseWorkoutBtn = document.getElementById('pause-workout-btn');
+    pauseWorkoutBtn?.addEventListener('click', async () => {
+      await storage.pauseWorkout();
+      render();
+    });
+
+    const resumeWorkoutBtn = document.getElementById('resume-workout-btn');
+    resumeWorkoutBtn?.addEventListener('click', async () => {
+      await storage.resumeWorkout();
+      render();
+    });
+
+    const finishWorkoutBtn = document.getElementById('finish-workout-btn');
+    finishWorkoutBtn?.addEventListener('click', async () => {
+      if (confirm('Завершить тренировку?')) {
+        await storage.finishWorkout();
+        render();
+      }
+    });
+
     const form = document.getElementById('log-form') as HTMLFormElement;
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
