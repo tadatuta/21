@@ -328,6 +328,27 @@ export class StorageService {
         return id;
     }
 
+    private updateImplicitWorkoutBounds(workoutId: string) {
+        const workout = this.data.workouts.find(w => w.id === workoutId);
+        if (!workout || workout.isManual) return; // Only for implicit workouts
+
+        const workoutLogs = this.data.logs.filter(l => l.workoutId === workoutId);
+        if (workoutLogs.length === 0) {
+            // Ideally should delete the workout or keep it as empty? 
+            // For now let's keep it but with original times or do nothing.
+            return;
+        }
+
+        const sorted = [...workoutLogs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        workout.startTime = sorted[0].date;
+        workout.endTime = sorted[sorted.length - 1].date;
+
+        // Ensure implicit workout is marked as finished if it wasn't (though they usually are)
+        if (workout.status !== 'finished') {
+            workout.status = 'finished';
+        }
+    }
+
     async addLog(log: Omit<WorkoutSet, 'id' | 'date' | 'workoutId'>): Promise<WorkoutSet> {
         const workoutId = this.ensureActiveWorkout();
 
@@ -340,21 +361,24 @@ export class StorageService {
 
         this.data.logs.push(newLog);
 
-        // Update workout end time if it matches the log's workout
-        const workout = this.data.workouts.find(w => w.id === workoutId);
-        if (workout && !workout.isManual) {
-            workout.endTime = newLog.date;
-        }
+        this.updateImplicitWorkoutBounds(workoutId);
 
         await this.persist();
         return newLog;
     }
 
     async deleteLog(id: string): Promise<void> {
-        this.data.logs = this.data.logs.filter(l => l.id !== id);
-        // We generally don't delete workouts even if empty? Or maybe cleanup?
-        // Let's leave workouts for now.
-        await this.persist();
+        const logToDelete = this.data.logs.find(l => l.id === id);
+        if (logToDelete) {
+            const workoutId = logToDelete.workoutId;
+            this.data.logs = this.data.logs.filter(l => l.id !== id);
+
+            if (workoutId) {
+                this.updateImplicitWorkoutBounds(workoutId);
+            }
+
+            await this.persist();
+        }
     }
 
     async updateLog(updatedLog: WorkoutSet): Promise<void> {
