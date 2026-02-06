@@ -9,6 +9,8 @@ import './styles/stats.css';
 import { getOneRepMaxByDate, getWorkoutDates, getDurationStats } from './utils/statistics';
 import { renderHeatmap } from './components/stats/Heatmap';
 import { renderVolumeChart, render1RMChart, renderDurationChart } from './components/stats/Charts';
+import { getAuthData } from './auth';
+import { renderLogin } from './components/auth/Login';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WEBAPP = (window as any).Telegram?.WebApp;
@@ -1089,6 +1091,17 @@ storage.onUpdate(() => render());
 storage.onSyncStatusChange(updateSyncStatus);
 
 async function initApp() {
+  // NEW AUTH CHECK
+  const isTma = !!(WEBAPP?.initData);
+  const isWebAuth = !!getAuthData();
+
+  if (!isTma && !isWebAuth) {
+    renderLogin(document.getElementById('app')!, () => {
+      location.reload();
+    });
+    return;
+  }
+
   // Check for profile deep link from startapp parameter
   const urlParams = new URLSearchParams(window.location.search);
   const startApp = urlParams.get('startapp') || WEBAPP?.initDataUnsafe?.start_param;

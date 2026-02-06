@@ -1,4 +1,5 @@
 import { AppData, WorkoutType, WorkoutSet, UserProfile, PublicProfileData, WorkoutSession } from '../types';
+import { getAuthString } from '../auth';
 
 const STORAGE_KEY = 'gym_twa_data';
 const SERVER_URL = 'https://functions.yandexcloud.net/d4ehnqvq3a8fo55t7tj4';
@@ -35,6 +36,11 @@ export class StorageService {
         };
         if (WEBAPP?.initData) {
             headers['X-Telegram-Init-Data'] = WEBAPP.initData;
+        } else {
+            const webAuth = getAuthString();
+            if (webAuth) {
+                headers['X-Telegram-Init-Data'] = webAuth;
+            }
         }
         return headers;
     }
