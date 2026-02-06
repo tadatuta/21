@@ -1094,7 +1094,6 @@ async function initApp() {
   // 1. Check for Telegram Login Widget redirect data
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.has('hash') && urlParams.has('id')) {
-    console.log('[Debug] Found auth params in URL');
     const user: TelegramLoginData = {
       id: parseInt(urlParams.get('id') || '0', 10),
       first_name: urlParams.get('first_name') || '',
@@ -1106,7 +1105,6 @@ async function initApp() {
     };
 
     saveAuthData(user);
-    console.log('[Debug] Auth data saved from URL, cleaning URL...');
 
     // Clean URL
     urlParams.delete('hash');
@@ -1132,14 +1130,11 @@ async function initApp() {
   const authData = getAuthData();
   const isWebAuth = !!authData;
 
-  console.log('[Debug] initApp check:', { isTma, isWebAuth, authData, tmaInitData: WEBAPP?.initData });
 
   if (!isTma && !isWebAuth) {
-    console.log('[Debug] Not authenticated, rendering login');
     renderLogin(document.getElementById('app')!, () => {
       // This callback might still be used if we keep DEV button or if widget decides to use callback for some reason,
       // but primary flow is now redirect.
-      console.log('[Debug] Login success callback triggered, reloading...');
       location.reload();
     });
     return;
