@@ -9,7 +9,7 @@ import './styles/stats.css';
 import { getOneRepMaxByDate, getWorkoutDates, getDurationStats } from './utils/statistics';
 import { renderHeatmap } from './components/stats/Heatmap';
 import { renderVolumeChart, render1RMChart, renderDurationChart } from './components/stats/Charts';
-import { getAuthData } from './auth';
+import { getAuthData, saveAuthData, TelegramLoginData } from './auth';
 import { renderLogin } from './components/auth/Login';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1091,20 +1091,65 @@ storage.onUpdate(() => render());
 storage.onSyncStatusChange(updateSyncStatus);
 
 async function initApp() {
-  // NEW AUTH CHECK
+  // 1. Check for Telegram Login Widget redirect data
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('hash') && urlParams.has('id')) {
+    console.log('[Debug] Found auth params in URL');
+    const user: TelegramLoginData = {
+      id: parseInt(urlParams.get('id') || '0', 10),
+      first_name: urlParams.get('first_name') || '',
+      last_name: urlParams.get('last_name') || undefined,
+      username: urlParams.get('username') || undefined,
+      photo_url: urlParams.get('photo_url') || undefined,
+      auth_date: parseInt(urlParams.get('auth_date') || '0', 10),
+      hash: urlParams.get('hash') || ''
+    };
+
+    saveAuthData(user);
+    console.log('[Debug] Auth data saved from URL, cleaning URL...');
+
+    // Clean URL
+    urlParams.delete('hash');
+    urlParams.delete('id');
+    urlParams.delete('first_name');
+    urlParams.delete('last_name');
+    urlParams.delete('username');
+    urlParams.delete('photo_url');
+    urlParams.delete('auth_date');
+    urlParams.delete('auth'); // Sometimes sent
+
+    const newSearch = urlParams.toString();
+    const newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '');
+    window.history.replaceState({}, document.title, newUrl);
+
+    // Reload to ensure clean state initialization
+    location.reload();
+    return;
+  }
+
+  // 2. Standard Auth Check
   const isTma = !!(WEBAPP?.initData);
-  const isWebAuth = !!getAuthData();
+  const authData = getAuthData();
+  const isWebAuth = !!authData;
+
+  console.log('[Debug] initApp check:', { isTma, isWebAuth, authData, tmaInitData: WEBAPP?.initData });
 
   if (!isTma && !isWebAuth) {
+    console.log('[Debug] Not authenticated, rendering login');
     renderLogin(document.getElementById('app')!, () => {
+      // This callback might still be used if we keep DEV button or if widget decides to use callback for some reason,
+      // but primary flow is now redirect.
+      console.log('[Debug] Login success callback triggered, reloading...');
       location.reload();
     });
     return;
   }
 
   // Check for profile deep link from startapp parameter
-  const urlParams = new URLSearchParams(window.location.search);
-  const startApp = urlParams.get('startapp') || WEBAPP?.initDataUnsafe?.start_param;
+  // Note: urlParams was already defined above, but we need to re-read if we didn't return
+  // Actually, we can reuse if we didn't redirect.
+  const currentParams = new URLSearchParams(window.location.search);
+  const startApp = currentParams.get('startapp') || WEBAPP?.initDataUnsafe?.start_param;
 
   if (startApp && startApp.startsWith('profile_')) {
     const identifier = startApp.replace('profile_', '');
