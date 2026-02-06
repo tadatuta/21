@@ -1,5 +1,5 @@
 // Mock Telegram WebApp for local development
-if (0 && import.meta.env.DEV) {
+if (import.meta.env.DEV) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const win = window as any;
 
