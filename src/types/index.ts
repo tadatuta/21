@@ -19,6 +19,7 @@ export interface WorkoutType extends SyncItem {
     id: string;
     name: string;
     category?: 'strength' | 'time'; // Default to 'strength' if undefined
+    order?: number;
 }
 
 export interface WorkoutSet extends SyncItem {

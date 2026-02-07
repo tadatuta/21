@@ -12,6 +12,7 @@ import { renderVolumeChart, render1RMChart, renderDurationChart } from './compon
 import { getAuthData, saveAuthData, TelegramLoginData } from './auth';
 import { renderLogin } from './components/auth/Login';
 import { registerSW } from 'virtual:pwa-register';
+import Sortable from 'sortablejs';
 
 // Register Service Worker
 registerSW({ immediate: true });
@@ -542,9 +543,9 @@ function renderSettingsPage() {
         </form>
 
         <h2 class="subtitle">Типы тренировок</h2>
-        <div class="type-list">
+        <div class="type-list" id="workout-type-list">
           ${types.map(t => `
-            <div class="type-item">
+            <div class="type-item" data-id="${t.id}">
               <span>${t.name}</span>
               <div style="display: flex; gap: 8px;">
                 <button class="type-item__edit icon-btn" data-id="${t.id}" title="Редактировать">✏️</button>
@@ -1141,6 +1142,53 @@ function bindPageEvents() {
       editingTypeId = null;
       render();
     });
+
+    document.querySelectorAll('.type-item__edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingTypeId = btn.getAttribute('data-id');
+        render();
+        // Focus input
+        const input = document.getElementById('new-type-name') as HTMLInputElement;
+        input?.focus();
+      });
+    });
+
+    document.querySelectorAll('.type-item__delete').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        if (id && confirm('Удалить этот тип тренировки?')) {
+          if (editingTypeId === id) editingTypeId = null;
+          await storage.deleteWorkoutType(id);
+          render();
+        }
+      });
+    });
+  }
+
+  if (currentPage === 'settings') {
+    const typeList = document.getElementById('workout-type-list');
+    if (typeList) {
+      Sortable.create(typeList, {
+        animation: 150,
+        handle: '.type-item', // Drag by the whole item
+        onEnd: async () => {
+          // Get new order
+          const newOrder = Array.from(typeList.children).map(child => child.getAttribute('data-id') || '').filter(Boolean);
+          await storage.updateWorkoutTypeOrder(newOrder);
+          // No need to re-render immediately as the DOM is already updated by Sortable
+          // But we might want to ensure consistency? 
+          // If we re-render, it might jitter. 
+          // But generic render() pulls from storage, so if we navigate away and back, it should be fine.
+          // Main page select list needs update though?
+          // Navigation to main page triggers render(), so it will fetch fresh sorted list.
+        }
+      });
+    }
+
+    // Bind edit/delete buttons again because we just bound Sortable
+    // Oh wait, renderSettingsPage renders the HTML, then bindPageEvents is called.
+    // The previous block bound edit/delete.
+    // Ensure we don't break that.
 
     document.querySelectorAll('.type-item__edit').forEach(btn => {
       btn.addEventListener('click', () => {

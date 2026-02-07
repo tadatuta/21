@@ -185,7 +185,8 @@ export class StorageService {
     // --- WRAPPERS ---
 
     getWorkoutTypes(): WorkoutType[] {
-        return this.cache.workoutTypes.filter(i => !i.isDeleted);
+        const types = this.cache.workoutTypes.filter(i => !i.isDeleted);
+        return types.sort((a, b) => (a.order ?? Infinity) - (b.order ?? Infinity));
     }
 
     getLogs(): WorkoutSet[] {
@@ -205,10 +206,15 @@ export class StorageService {
     }
 
     async addWorkoutType(name: string, category: 'strength' | 'time' = 'strength'): Promise<WorkoutType> {
+        // Find max order
+        const types = this.getWorkoutTypes();
+        const maxOrder = types.length > 0 ? Math.max(...types.map(t => t.order ?? 0)) : 0;
+
         const newType: WorkoutType = {
             id: Date.now().toString(),
             name,
             category,
+            order: maxOrder + 1,
             updatedAt: new Date().toISOString()
         };
         await db.workoutTypes.put(newType);
@@ -465,6 +471,23 @@ export class StorageService {
         await db.profile.put(merged);
         await this.reloadCache();
         this.sync().catch(() => { });
+    }
+
+    async updateWorkoutTypeOrder(ids: string[]): Promise<void> {
+        // Bulk update orders
+        const updates = ids.map((id, index) => {
+            const type = this.cache.workoutTypes.find(t => t.id === id);
+            if (type) {
+                return { ...type, order: index, updatedAt: new Date().toISOString() };
+            }
+            return null;
+        }).filter(Boolean) as WorkoutType[];
+
+        if (updates.length > 0) {
+            await db.workoutTypes.bulkPut(updates);
+            await this.reloadCache();
+            this.sync().catch(() => { });
+        }
     }
 
     async getPublicProfile(identifier: string): Promise<PublicProfileData | null> {
