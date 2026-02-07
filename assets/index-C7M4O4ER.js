@@ -55,7 +55,7 @@ var Xa=Object.defineProperty;var Va=(a,n,i)=>n in a?Xa(a,n,{enumerable:!0,config
 `);const m=new Map;return[...c].filter(E=>!E.isDeleted).sort((E,A)=>new Date(A.date).getTime()-new Date(E.date).getTime()).forEach(E=>{const A=new Date(E.date).toLocaleDateString();m.has(A)||m.set(A,[]),m.get(A).push(E)}),m.forEach((E,A)=>{d.push(`
 ### ${A}`),Array.from(new Set(E.map(B=>B.workoutId).filter(Boolean))).forEach(B=>{const F=s.find(nt=>nt.id===B),U=E.filter(nt=>nt.workoutId===B);F&&F.name&&d.push(`
 #### ${F.name}`);const X=new Map;U.forEach(nt=>{X.has(nt.workoutTypeId)||X.set(nt.workoutTypeId,[]),X.get(nt.workoutTypeId).push(nt)}),X.forEach((nt,ft)=>{const st=i.find(z=>z.id===ft),et=(st==null?void 0:st.name)||"Неизвестное упражнение";d.push(`- **${et}**: ${nt.map(z=>Ns(z)).join(", ")}`)})})}),d.join(`
-`)}function Ns(a){return a.duration?`${a.duration} мин`:`${a.weight}кг × ${a.reps}`}fs({immediate:!0});var Ui;const Et=(Ui=window.Telegram)==null?void 0:Ui.WebApp;Et&&(Et.ready(),Et.expand());let Vt="main",cn="all",Ot=null,da=null,Or=null,Po=!1,An=null,Nt=null,_r="overview",Bo=!1,kr=!1;function Bs(a){Vt=a,yt()}let xo=null;function me(a){let n=document.querySelector(".toast");n||(n=document.createElement("div"),n.className="toast",document.body.appendChild(n)),n.textContent=a,n.classList.add("visible"),xo&&clearTimeout(xo),xo=setTimeout(()=>{n==null||n.classList.remove("visible")},2e3)}function yt(){const a=document.getElementById("app");if(!a)return;const n=localStorage.getItem("skip_tma_auth")==="true",i=!!(Et!=null&&Et.initData)&&!n,c=!!Ar();!i&&!c||(a.innerHTML=`
+`)}function Ns(a){return a.duration!==void 0?`${a.duration} мин`:`${a.weight}кг × ${a.reps}`}fs({immediate:!0});var Ui;const Et=(Ui=window.Telegram)==null?void 0:Ui.WebApp;Et&&(Et.ready(),Et.expand());let Vt="main",cn="all",Ot=null,da=null,Or=null,Po=!1,An=null,Nt=null,_r="overview",Bo=!1,kr=!1;function Bs(a){Vt=a,yt()}let xo=null;function me(a){let n=document.querySelector(".toast");n||(n=document.createElement("div"),n.className="toast",document.body.appendChild(n)),n.textContent=a,n.classList.add("visible"),xo&&clearTimeout(xo),xo=setTimeout(()=>{n==null||n.classList.remove("visible")},2e3)}function yt(){const a=document.getElementById("app");if(!a)return;const n=localStorage.getItem("skip_tma_auth")==="true",i=!!(Et!=null&&Et.initData)&&!n,c=!!Ar();!i&&!c||(a.innerHTML=`
     <main class="content">
       ${qs()}
     </main>
@@ -123,11 +123,13 @@ var Xa=Object.defineProperty;var Va=(a,n,i)=>n in a?Xa(a,n,{enumerable:!0,config
             <div class="form-row">
               <div class="form-group">
                 <label class="label">Вес (кг)</label>
-                <input class="input" type="number" name="weight" step="0.5" placeholder="0" value="${Ot&&c?c.weight:""}">
+                <input class="input" type="number" name="weight" step="0.5" placeholder="0" value="${Ot&&c?c.weight??"":""}">
+
               </div>
               <div class="form-group">
                 <label class="label">Повторений</label>
-                <input class="input" type="number" name="reps" placeholder="0" value="${Ot&&c?c.reps:""}">
+                <input class="input" type="number" name="reps" placeholder="0" value="${Ot&&c?c.reps??"":""}">
+
               </div>
             </div>
         </div>
@@ -141,7 +143,8 @@ var Xa=Object.defineProperty;var Va=(a,n,i)=>n in a?Xa(a,n,{enumerable:!0,config
 
         <button class="button" type="submit">${Ot?"Сохранить изменения":"Зафиксировать"}</button>
         ${Ot?'<button class="button button_secondary" type="button" id="cancel-edit-btn" style="margin-top: 12px;">Отмена</button>':""}
-        ${!Ot&&i?`<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${(h=a.find(m=>m.id===i.workoutTypeId))==null?void 0:h.name} ${i.weight?`${i.weight}кг × ${i.reps}`:`${i.duration} мин`}</button>`:""}
+        ${!Ot&&i?`<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${(h=a.find(m=>m.id===i.workoutTypeId))==null?void 0:h.name} ${i.weight!==void 0?`${i.weight}кг × ${i.reps}`:`${i.duration} мин`}</button>`:""}
+
       </form>
       <div class="recent-logs">
         <div class="recent-logs__header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
