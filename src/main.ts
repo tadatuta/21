@@ -745,6 +745,13 @@ function renderPublicProfilePage() {
   }
 
   const profile = loadedPublicProfile;
+  // Filter out deleted items
+  if (profile.logs) {
+    profile.logs = profile.logs.filter(l => !l.isDeleted);
+  }
+  if (profile.workoutTypes) {
+    profile.workoutTypes = profile.workoutTypes.filter(t => !t.isDeleted);
+  }
   return `
     <div class="page-content profile-page">
       <div class="profile-header">
