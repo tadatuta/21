@@ -13,6 +13,7 @@ import { getAuthData, saveAuthData, TelegramLoginData } from './auth';
 import { renderLogin } from './components/auth/Login';
 import { registerSW } from 'virtual:pwa-register';
 import Sortable from 'sortablejs';
+import { downloadFile, generateMarkdown } from './utils/export';
 
 // Register Service Worker
 registerSW({ immediate: true });
@@ -641,6 +642,16 @@ function renderProfileSettingsPage() {
           </div>
         </div>
 
+        <div class="settings-section">
+          <div class="settings-section-title">Управление данными</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="button button_secondary" id="export-json-btn">Экспорт JSON (Backup)</button>
+            <button class="button button_secondary" id="export-md-btn">Экспорт Markdown</button>
+            <button class="button button_secondary" id="import-json-btn">Импорт JSON (Restore)</button>
+            <input type="file" id="import-file-input" style="display: none" accept=".json">
+          </div>
+        </div>
+
         <button class="button" id="save-profile-btn">Сохранить</button>
       </div>
     </div>
@@ -1233,6 +1244,7 @@ function bindPageEvents() {
         showFullHistory: historyToggle?.checked ?? false,
         displayName: nameInput?.value || undefined,
       });
+      showToast('Профиль обновлен');
       render();
     });
 
@@ -1246,6 +1258,7 @@ function bindPageEvents() {
     });
 
     const shareBtn = document.getElementById('share-profile-link');
+    /*eslint no-empty: "error"*/
     shareBtn?.addEventListener('click', () => {
       const identifier = storage.getProfileIdentifier();
       const profileUrl = `https://t.me/gymgym21bot/app?startapp=profile_${identifier}`;
@@ -1257,6 +1270,61 @@ function bindPageEvents() {
           showToast('Ссылка скопирована');
         });
       }
+    });
+
+    // Export/Import Logic
+    document.getElementById('export-json-btn')?.addEventListener('click', async () => {
+      try {
+        const data = await storage.exportData();
+        const filename = `gym_backup_${new Date().toISOString().split('T')[0]}.json`;
+        downloadFile(JSON.stringify(data, null, 2), filename, 'application/json');
+        showToast('Экспорт выполнен');
+      } catch (e) {
+        console.error(e);
+        showToast('Ошибка экспорта');
+      }
+    });
+
+    document.getElementById('export-md-btn')?.addEventListener('click', async () => {
+      try {
+        const data = await storage.exportData();
+        const markdown = generateMarkdown(data);
+        const filename = `gym_history_${new Date().toISOString().split('T')[0]}.md`;
+        downloadFile(markdown, filename, 'text/markdown');
+        showToast('Экспорт выполнен');
+      } catch (e) {
+        console.error(e);
+        showToast('Ошибка экспорта');
+      }
+    });
+
+    document.getElementById('import-json-btn')?.addEventListener('click', () => {
+      document.getElementById('import-file-input')?.click();
+    });
+
+    document.getElementById('import-file-input')?.addEventListener('change', (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const json = event.target?.result as string;
+          const data = JSON.parse(json);
+
+          if (confirm('Внимание! Все текущие данные будут заменены данными из файла. Продолжить?')) {
+            await storage.importData(data);
+            showToast('Данные успешно импортированы');
+            setTimeout(() => location.reload(), 1000);
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Ошибка импорта: Неверный формат файла');
+        }
+      };
+      reader.readAsText(file);
+      // Clear input so same file can be selected again if needed
+      (e.target as HTMLInputElement).value = '';
     });
   }
 

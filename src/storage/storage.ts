@@ -503,6 +503,31 @@ export class StorageService {
             return null;
         }
     }
+
+    async exportData(): Promise<AppData> {
+        return await SyncService.readAll();
+    }
+
+    async importData(data: AppData): Promise<void> {
+        if (!data.logs || !data.workoutTypes) {
+            throw new Error('Invalid data format');
+        }
+
+        await db.transaction('rw', db.workouts, db.logs, db.workoutTypes, db.profile, async () => {
+            await db.workouts.clear();
+            await db.logs.clear();
+            await db.workoutTypes.clear();
+            await db.profile.clear();
+
+            if (data.workouts?.length) await db.workouts.bulkAdd(data.workouts);
+            if (data.logs?.length) await db.logs.bulkAdd(data.logs);
+            if (data.workoutTypes?.length) await db.workoutTypes.bulkAdd(data.workoutTypes);
+            if (data.profile) await db.profile.put({ ...data.profile, id: 'me' }); // ensure id
+        });
+
+        await this.reloadCache();
+        this.sync().catch(() => { });
+    }
 }
 
 export const storage = new StorageService();
