@@ -1142,13 +1142,13 @@ function updateSyncStatus(status: SyncStatus) {
 
   switch (status) {
     case 'saving':
-      syncStatusEl.textContent = 'Сохранение...';
+      syncStatusEl.textContent = 'Синхронизация...';
       break;
     case 'success':
-      syncStatusEl.textContent = 'Сохранено';
+      syncStatusEl.textContent = 'Синхронизировано';
       break;
     case 'error':
-      syncStatusEl.textContent = 'Ошибка сохранения';
+      syncStatusEl.textContent = 'Ошибка синхронизации';
       break;
     default:
       syncStatusEl.className = 'sync-status'; // Hide
