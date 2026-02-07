@@ -312,7 +312,7 @@ var Ha=Object.defineProperty;var Xa=(a,n,i)=>n in a?Ha(a,n,{enumerable:!0,config
             <div class="settings-section-title">Друзья (${a.friends.length})</div>
             <div class="friends-list">
                 ${a.friends.map(O=>`
-                    <div class="friend-item" onclick="location.href='${Or(O.identifier)}'" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer;">
+                    <a href="${Or(O.identifier)}" class="friend-item" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; text-decoration: none; color: inherit;">
                         <div class="friend-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color-alt); display: flex; align-items: center; justify-content: center; overflow: hidden;">
                             ${O.photoUrl?`<img src="${O.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">`:O.displayName.charAt(0).toUpperCase()}
                         </div>
@@ -320,7 +320,7 @@ var Ha=Object.defineProperty;var Xa=(a,n,i)=>n in a?Ha(a,n,{enumerable:!0,config
                             <div class="friend-name" style="font-weight: 500;">${O.displayName}</div>
                         </div>
                         <div class="friend-arrow">›</div>
-                    </div>
+                    </a>
                 `).join("")}
             </div>
         </div>
