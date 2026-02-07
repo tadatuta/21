@@ -379,6 +379,7 @@
     font-weight: 400;
     color: var(--color-hint);
 }
+
 /* Sync Status Indicator */
 .sync-status {
     position: fixed;
@@ -418,3 +419,28 @@
     background: rgba(108, 117, 125, 0.9);
 }
 
+/* Filter Toggle */
+.filter-toggle {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+}
+
+.filter-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.filter-toggle__icon {
+    font-size: 18px;
+    opacity: 0.4;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.filter-toggle input[type="checkbox"]:checked+.filter-toggle__icon {
+    opacity: 1;
+    transform: scale(1.1);
+}

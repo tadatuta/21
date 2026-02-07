@@ -35,6 +35,7 @@ let profileLoadFailed = false;
 let lastAddedLogId: string | null = null;
 let editingTypeId: string | null = null;
 let currentStatsTab: 'overview' | 'progress' = 'overview';
+let isFilterEnabled = false;
 
 // Workout UI state
 let isStartingWorkout = false;
@@ -292,11 +293,15 @@ function renderMainPage() {
         <div class="recent-logs__header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
            <button class="icon-btn" id="prev-week-btn">◀️</button>
            <div id="week-label-container" style="display: flex; align-items: center; gap: 8px; position: relative;">
-             <h2 class="subtitle" style="margin: 0;">${currentWeekOffset === 0 ? 'Последние 7 дней' : label}</h2>
              <span style="font-size: 18px; position: relative; display: inline-block;">
                📅
                <input type="date" id="calendar-input" value="${lastCalendarValue}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
              </span>
+             <h2 class="subtitle" style="margin: 0;">${currentWeekOffset === 0 ? 'Последние 7 дней' : label}</h2>
+             <label class="filter-toggle" title="Фильтр по типу упражнения">
+               <input type="checkbox" id="filter-toggle-input" ${isFilterEnabled ? 'checked' : ''}>
+               <span class="filter-toggle__icon">🔍</span>
+             </label>
            </div>
            <button class="icon-btn" id="next-week-btn" ${currentWeekOffset === 0 ? 'disabled' : ''} style="${currentWeekOffset === 0 ? 'opacity: 0.3; cursor: default;' : ''}">▶️</button>
         </div>
@@ -313,10 +318,18 @@ function renderLogsList() {
   const types = storage.getWorkoutTypes();
   const { start, end } = getWeekRange(currentWeekOffset);
 
-  const weekLogs = allLogs.filter(log => {
+  let weekLogs = allLogs.filter(log => {
     const logDate = new Date(log.date);
     return logDate >= start && logDate <= end;
   });
+
+  // Apply filter by selected exercise type if enabled
+  if (isFilterEnabled) {
+    const selectedTypeId = (document.querySelector('select[name="typeId"]') as HTMLSelectElement)?.value;
+    if (selectedTypeId) {
+      weekLogs = weekLogs.filter(log => log.workoutTypeId === selectedTypeId);
+    }
+  }
 
   return generateLogsListHtml(weekLogs, types, true);
 }
@@ -1017,6 +1030,13 @@ function bindPageEvents() {
       currentWeekOffset = Math.max(0, Math.floor(diffDays / 7));
 
       // Use partial update instead of full render
+      updateWeekView();
+    });
+
+    // Filter toggle
+    const filterToggle = document.getElementById('filter-toggle-input') as HTMLInputElement;
+    filterToggle?.addEventListener('change', () => {
+      isFilterEnabled = filterToggle.checked;
       updateWeekView();
     });
   }
