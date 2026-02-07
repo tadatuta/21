@@ -41,6 +41,12 @@ export interface UserProfile extends SyncItem {
     telegramUsername?: string;
     telegramUserId: number;
     createdAt: string;
+    // Personal Data for LLM (Private)
+    gender?: 'male' | 'female' | 'other';
+    birthDate?: string; // YYYY-MM-DD
+    height?: number; // cm
+    weight?: number; // kg (current weight)
+    additionalInfo?: string; // Arbitrary text for LLM
     friends?: Friend[];
 }
 

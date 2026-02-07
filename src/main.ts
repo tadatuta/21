@@ -676,6 +676,42 @@ function renderProfileSettingsPage() {
           <input class="input" type="text" id="profile-display-name" value="${displayName}" placeholder="Ваше имя">
         </div>
 
+        <div class="settings-section">
+          <div class="settings-section-title">Личные данные (Приватно)</div>
+          <p class="hint" style="margin-bottom: 12px; font-size: 0.9em;">Эти данные используются только для персонализации советов от AI и не видны другим пользователям.</p>
+          
+          <div class="form-row">
+            <div class="form-group">
+                <label class="label">Пол</label>
+                <select class="select" id="profile-gender">
+                    <option value="" ${!profile?.gender ? 'selected' : ''}>Не указано</option>
+                    <option value="male" ${profile?.gender === 'male' ? 'selected' : ''}>Мужской</option>
+                    <option value="female" ${profile?.gender === 'female' ? 'selected' : ''}>Женский</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="label">Дата рождения</label>
+                <input class="input" type="date" id="profile-birthdate" value="${profile?.birthDate || ''}">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+                <label class="label">Рост (см)</label>
+                <input class="input" type="number" id="profile-height" placeholder="180" value="${profile?.height || ''}">
+            </div>
+            <div class="form-group">
+                <label class="label">Вес (кг)</label>
+                <input class="input" type="number" id="profile-weight" placeholder="75" value="${profile?.weight || ''}">
+            </div>
+          </div>
+
+          <div class="form-group">
+             <label class="label">Дополнительная информация</label>
+             <textarea class="input" id="profile-additional-info" rows="3" placeholder="Укажите травмы, ограничения, цели или любую другую информацию, которая поможет AI давать более точные советы...">${profile?.additionalInfo || ''}</textarea>
+          </div>
+        </div>
+
         ${isPublic && identifier ? `
           <div class="settings-section">
             <div class="settings-section-title">Ссылка на профиль</div>
@@ -1345,10 +1381,21 @@ function bindPageEvents() {
       const historyToggle = document.getElementById('profile-history-toggle') as HTMLInputElement;
       const nameInput = document.getElementById('profile-display-name') as HTMLInputElement;
 
+      const genderInput = document.getElementById('profile-gender') as HTMLSelectElement;
+      const birthDateInput = document.getElementById('profile-birthdate') as HTMLInputElement;
+      const heightInput = document.getElementById('profile-height') as HTMLInputElement;
+      const weightInput = document.getElementById('profile-weight') as HTMLInputElement;
+      const additionalInfoInput = document.getElementById('profile-additional-info') as HTMLTextAreaElement;
+
       await storage.updateProfileSettings({
         isPublic: toggle?.checked ?? false,
         showFullHistory: historyToggle?.checked ?? false,
         displayName: nameInput?.value || undefined,
+        gender: (genderInput?.value as 'male' | 'female' | 'other') || undefined,
+        birthDate: birthDateInput?.value || undefined,
+        height: heightInput?.value ? Number(heightInput.value) : undefined,
+        weight: weightInput?.value ? Number(weightInput.value) : undefined,
+        additionalInfo: additionalInfoInput?.value || undefined,
       });
       showToast('Профиль обновлен');
       render();
