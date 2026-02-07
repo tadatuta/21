@@ -2,18 +2,18 @@ import { ProfileStats } from '../../types';
 import { renderHeatmap } from '../stats/Heatmap';
 
 export function renderProfileStats(stats: ProfileStats, logDates?: Set<string>): string {
-    const totalVolume = stats.totalVolume;
-    let volumeDisplay = '';
+  const totalVolume = stats.totalVolume;
+  let volumeDisplay = '';
 
-    if (totalVolume < 1000) {
-        volumeDisplay = `${Math.round(totalVolume)}кг`;
-    } else if (totalVolume < 10000) {
-        volumeDisplay = `${(totalVolume / 1000).toFixed(1)}т`;
-    } else {
-        volumeDisplay = `${Math.round(totalVolume / 1000)}т`;
-    }
+  if (totalVolume < 1000) {
+    volumeDisplay = `${Math.round(totalVolume)}кг`;
+  } else if (totalVolume < 10000) {
+    volumeDisplay = `${(totalVolume / 1000).toFixed(1)}т`;
+  } else {
+    volumeDisplay = `${Math.round(totalVolume / 1000)}т`;
+  }
 
-    return `
+  return `
       <div class="profile-stats">
         <div class="stat-card">
           <div class="stat-value">${stats.totalWorkouts}</div>
@@ -40,9 +40,7 @@ export function renderProfileStats(stats: ProfileStats, logDates?: Set<string>):
       ${logDates && logDates.size > 0 ? `
         <div class="activity-list">
           <h2 class="subtitle">Активность</h2>
-          <div class="heatmap-container" style="margin-bottom: 24px;">
-            ${renderHeatmap(logDates)}
-          </div>
+          ${renderHeatmap(logDates)}
         </div>
       ` : ''}
     `;

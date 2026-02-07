@@ -41,6 +41,7 @@ let profileLoadFailed = false;
 let lastAddedLogId: string | null = null;
 let editingTypeId: string | null = null;
 let currentStatsTab: 'overview' | 'progress' = 'overview';
+let currentProfileTab: 'ai' | 'public' | 'data' = 'ai';
 let isFilterEnabled = false;
 
 // Workout UI state
@@ -645,155 +646,170 @@ function renderProfileSettingsPage() {
         <div class="profile-subtitle">${isPublic ? 'Публичный профиль' : 'Приватный профиль'}</div>
       </div>
 
+      <div class="stats-tabs">
+        <button class="stats-tab profile-tab ${currentProfileTab === 'ai' ? 'active' : ''}" data-tab="ai">AI</button>
+        <button class="stats-tab profile-tab ${currentProfileTab === 'public' ? 'active' : ''}" data-tab="public">Публичное</button>
+        <button class="stats-tab profile-tab ${currentProfileTab === 'data' ? 'active' : ''}" data-tab="data">Данные</button>
+      </div>
+
       <div class="profile-settings">
-        <div class="settings-section">
-          <div class="settings-section-title">Видимость</div>
-          <div class="toggle-row">
-            <div class="toggle-label">
-              <span class="toggle-label-text">Публичный профиль</span>
-              <span class="toggle-label-hint">Другие смогут видеть вашу статистику</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="profile-public-toggle" ${isPublic ? 'checked' : ''}>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-          <div class="toggle-row" style="margin-top: 12px;">
-            <div class="toggle-label">
-              <span class="toggle-label-text">Показывать все упражнения</span>
-              <span class="toggle-label-hint">Подробный список упражнений в публичном профиле</span>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" id="profile-history-toggle" ${profile?.showFullHistory ? 'checked' : ''}>
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
 
-        <div class="settings-section">
-          <div class="settings-section-title">Имя</div>
-          <input class="input" type="text" id="profile-display-name" value="${displayName}" placeholder="Ваше имя">
-        </div>
-
-        <div class="settings-section">
-          <div class="settings-section-title">Личные данные (Приватно)</div>
-          <p class="hint" style="margin-bottom: 12px; font-size: 0.9em;">Эти данные используются только для персонализации советов от AI и не видны другим пользователям.</p>
-          
-          <div class="form-row">
-            <div class="form-group">
-                <label class="label">Пол</label>
-                <select class="select" id="profile-gender">
-                    <option value="" ${!profile?.gender ? 'selected' : ''}>Не указано</option>
-                    <option value="male" ${profile?.gender === 'male' ? 'selected' : ''}>Мужской</option>
-                    <option value="female" ${profile?.gender === 'female' ? 'selected' : ''}>Женский</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="label">Дата рождения</label>
-                <input class="input" type="date" id="profile-birthdate" value="${profile?.birthDate || ''}">
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-                <label class="label">Рост (см)</label>
-                <input class="input" type="number" id="profile-height" placeholder="180" value="${profile?.height || ''}">
-            </div>
-            <div class="form-group">
-                <label class="label">Вес (кг)</label>
-                <input class="input" type="number" id="profile-weight" placeholder="75" value="${profile?.weight || ''}">
-            </div>
-          </div>
-
-          <div class="form-group">
-             <label class="label">Дополнительная информация</label>
-             <textarea class="input" id="profile-additional-info" rows="3" placeholder="Укажите травмы, ограничения, цели или любую другую информацию, которая поможет AI давать более точные советы...">${profile?.additionalInfo || ''}</textarea>
-          </div>
-        </div>
-
-        ${isPublic && identifier ? `
+        ${currentProfileTab === 'public' ? `
           <div class="settings-section">
-            <div class="settings-section-title">Ссылка на профиль</div>
-            <div class="profile-link-section">
-              <a href="${profileUrl}" target="_blank" class="profile-link-url">${profileUrl}</a>
-              <div class="profile-link-actions">
-                <button class="button button_secondary" id="copy-profile-link">Копировать</button>
-                <button class="button" id="share-profile-link">Поделиться</button>
+            <div class="settings-section-title">Видимость</div>
+            <div class="toggle-row">
+              <div class="toggle-label">
+                <span class="toggle-label-text">Публичный профиль</span>
+                <span class="toggle-label-hint">Другие смогут видеть вашу статистику</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="profile-public-toggle" ${isPublic ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <div class="toggle-row" style="margin-top: 12px;">
+              <div class="toggle-label">
+                <span class="toggle-label-text">Показывать все упражнения</span>
+                <span class="toggle-label-hint">Подробный список упражнений в публичном профиле</span>
+              </div>
+              <label class="toggle-switch">
+                <input type="checkbox" id="profile-history-toggle" ${profile?.showFullHistory ? 'checked' : ''}>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-title">Имя</div>
+            <input class="input" type="text" id="profile-display-name" value="${displayName}" placeholder="Ваше имя">
+          </div>
+
+          ${isPublic && identifier ? `
+            <div class="settings-section">
+              <div class="settings-section-title">Ссылка на профиль</div>
+              <div class="profile-link-section">
+                <a href="${profileUrl}" target="_blank" class="profile-link-url">${profileUrl}</a>
+                <div class="profile-link-actions">
+                  <button class="button button_secondary" id="copy-profile-link">Копировать</button>
+                  <button class="button" id="share-profile-link">Поделиться</button>
+                </div>
               </div>
             </div>
+          ` : ''}
+
+          <div class="settings-section">
+            <div class="settings-section-title">Превью статистики</div>
+            ${(function () {
+        const logs = storage.getLogs();
+        const workoutTypes = storage.getWorkoutTypes();
+
+        // Calculate stats
+        const totalVolume = logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
+        const uniqueDaysSet = new Set(logs.map(l => l.date.split('T')[0]));
+        const totalWorkouts = uniqueDaysSet.size;
+
+        const lastWorkoutDate = logs.length > 0 ? [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date : undefined;
+
+        // Favorite exercise
+        const typeCounts = new Map<string, number>();
+        logs.forEach(l => {
+          typeCounts.set(l.workoutTypeId, (typeCounts.get(l.workoutTypeId) || 0) + 1);
+        });
+        let favoriteExercise = undefined;
+        let maxCount = 0;
+        typeCounts.forEach((count, typeId) => {
+          if (count > maxCount) {
+            maxCount = count;
+            const type = workoutTypes.find(t => t.id === typeId);
+            if (type) favoriteExercise = type.name;
+          }
+        });
+
+        const stats: ProfileStats = {
+          totalWorkouts,
+          totalVolume,
+          favoriteExercise,
+          lastWorkoutDate
+        };
+
+        return renderProfileStats(stats, uniqueDaysSet);
+      })()}
           </div>
+  
+          ${profile?.friends && profile.friends.length > 0 ? `
+          <div class="settings-section">
+              <div class="settings-section-title">Друзья (${profile.friends.length})</div>
+              <div class="friends-list">
+                  ${profile.friends.map(f => `
+                      <a href="${getProfileLink(f.identifier)}" class="friend-item" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; text-decoration: none; color: inherit;">
+                          <div class="friend-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color-alt); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                              ${f.photoUrl ? `<img src="${f.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : f.displayName.charAt(0).toUpperCase()}
+                          </div>
+                          <div class="friend-info" style="flex-grow: 1;">
+                              <div class="friend-name" style="font-weight: 500;">${f.displayName}</div>
+                          </div>
+                          <div class="friend-arrow">›</div>
+                      </a>
+                  `).join('')}
+              </div>
+          </div>
+          ` : ''}
+
+          <button class="button" id="save-profile-btn" style="margin-top: 12px;">Сохранить</button>
         ` : ''}
 
-        <div class="settings-section">
-        <div class="settings-section">
-          <div class="settings-section-title">Превью статистики</div>
-          ${(function () {
-      const logs = storage.getLogs();
-      const workoutTypes = storage.getWorkoutTypes();
-
-      // Calculate stats
-      const totalVolume = logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
-      const uniqueDaysSet = new Set(logs.map(l => l.date.split('T')[0]));
-      const totalWorkouts = uniqueDaysSet.size;
-
-      const lastWorkoutDate = logs.length > 0 ? [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date : undefined;
-
-      // Favorite exercise
-      const typeCounts = new Map<string, number>();
-      logs.forEach(l => {
-        typeCounts.set(l.workoutTypeId, (typeCounts.get(l.workoutTypeId) || 0) + 1);
-      });
-      let favoriteExercise = undefined;
-      let maxCount = 0;
-      typeCounts.forEach((count, typeId) => {
-        if (count > maxCount) {
-          maxCount = count;
-          const type = workoutTypes.find(t => t.id === typeId);
-          if (type) favoriteExercise = type.name;
-        }
-      });
-
-      const stats: ProfileStats = {
-        totalWorkouts,
-        totalVolume,
-        favoriteExercise,
-        lastWorkoutDate
-      };
-
-      return renderProfileStats(stats, uniqueDaysSet);
-    })()}
-        </div>
-
-        ${profile?.friends && profile.friends.length > 0 ? `
-        <div class="settings-section">
-            <div class="settings-section-title">Друзья (${profile.friends.length})</div>
-            <div class="friends-list">
-                ${profile.friends.map(f => `
-                    <a href="${getProfileLink(f.identifier)}" class="friend-item" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; text-decoration: none; color: inherit;">
-                        <div class="friend-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color-alt); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                            ${f.photoUrl ? `<img src="${f.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : f.displayName.charAt(0).toUpperCase()}
-                        </div>
-                        <div class="friend-info" style="flex-grow: 1;">
-                            <div class="friend-name" style="font-weight: 500;">${f.displayName}</div>
-                        </div>
-                        <div class="friend-arrow">›</div>
-                    </a>
-                `).join('')}
+        ${currentProfileTab === 'ai' ? `
+          <div class="settings-section">
+            <div class="settings-section-title">Личные данные (Приватно)</div>
+            <p class="hint" style="margin-bottom: 12px; font-size: 0.9em;">Эти данные используются только для персонализации советов от AI и не видны другим пользователям.</p>
+            
+            <div class="form-row">
+              <div class="form-group">
+                  <label class="label">Пол</label>
+                  <select class="select" id="profile-gender">
+                      <option value="" ${!profile?.gender ? 'selected' : ''}>Не указано</option>
+                      <option value="male" ${profile?.gender === 'male' ? 'selected' : ''}>Мужской</option>
+                      <option value="female" ${profile?.gender === 'female' ? 'selected' : ''}>Женский</option>
+                  </select>
+              </div>
+              <div class="form-group">
+                  <label class="label">Дата рождения</label>
+                  <input class="input" type="date" id="profile-birthdate" value="${profile?.birthDate || ''}">
+              </div>
             </div>
-        </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                  <label class="label">Рост (см)</label>
+                  <input class="input" type="number" id="profile-height" placeholder="180" value="${profile?.height || ''}">
+              </div>
+              <div class="form-group">
+                  <label class="label">Вес (кг)</label>
+                  <input class="input" type="number" id="profile-weight" placeholder="75" value="${profile?.weight || ''}">
+              </div>
+            </div>
+
+            <div class="form-group">
+               <label class="label">Дополнительная информация</label>
+               <textarea class="input" id="profile-additional-info" rows="3" placeholder="Укажите травмы, ограничения, цели или любую другую информацию, которая поможет AI давать более точные советы...">${profile?.additionalInfo || ''}</textarea>
+            </div>
+          </div>
+
+          <button class="button" id="save-profile-btn" style="margin-top: 12px;">Сохранить</button>
         ` : ''}
 
-        <div class="settings-section">
-          <div class="settings-section-title">Управление данными</div>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <button class="button button_secondary" id="export-json-btn">Экспорт JSON (Backup)</button>
-            <button class="button button_secondary" id="export-md-btn">Экспорт Markdown</button>
-            <button class="button button_secondary" id="import-json-btn">Импорт JSON (Restore)</button>
-            <input type="file" id="import-file-input" style="display: none" accept=".json">
+        ${currentProfileTab === 'data' ? `
+          <div class="settings-section">
+            <div class="settings-section-title">Управление данными</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button class="button button_secondary" id="export-json-btn">Экспорт JSON (Backup)</button>
+              <button class="button button_secondary" id="export-md-btn">Экспорт Markdown</button>
+              <button class="button button_secondary" id="import-json-btn">Импорт JSON (Restore)</button>
+              <input type="file" id="import-file-input" style="display: none" accept=".json">
+            </div>
           </div>
-        </div>
+        ` : ''}
 
-        <button class="button" id="save-profile-btn">Сохранить</button>
       </div>
     </div>
   `;
@@ -1386,9 +1402,22 @@ function bindPageEvents() {
   }
 
   if (currentPage === 'profile-settings') {
+    // Tab switching
+    const tabs = document.querySelectorAll('.profile-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const tabId = tab.getAttribute('data-tab');
+        if (tabId === 'ai' || tabId === 'public' || tabId === 'data') {
+          currentProfileTab = tabId;
+          render();
+        }
+      });
+    });
+
     const saveBtn = document.getElementById('save-profile-btn');
     saveBtn?.addEventListener('click', async () => {
-      const toggle = document.getElementById('profile-public-toggle') as HTMLInputElement;
+      // Gather fields from all tabs (only those currently present in DOM will be found)
+      const publicToggle = document.getElementById('profile-public-toggle') as HTMLInputElement;
       const historyToggle = document.getElementById('profile-history-toggle') as HTMLInputElement;
       const nameInput = document.getElementById('profile-display-name') as HTMLInputElement;
 
@@ -1398,17 +1427,21 @@ function bindPageEvents() {
       const weightInput = document.getElementById('profile-weight') as HTMLInputElement;
       const additionalInfoInput = document.getElementById('profile-additional-info') as HTMLTextAreaElement;
 
-      await storage.updateProfileSettings({
-        isPublic: toggle?.checked ?? false,
-        showFullHistory: historyToggle?.checked ?? false,
-        displayName: nameInput?.value || undefined,
-        gender: (genderInput?.value as 'male' | 'female' | 'other') || undefined,
-        birthDate: birthDateInput?.value || undefined,
-        height: heightInput?.value ? Number(heightInput.value) : undefined,
-        weight: weightInput?.value ? Number(weightInput.value) : undefined,
-        additionalInfo: additionalInfoInput?.value || undefined,
-      });
-      showToast('Профиль обновлен');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updates: any = {};
+
+      if (publicToggle) updates.isPublic = publicToggle.checked;
+      if (historyToggle) updates.showFullHistory = historyToggle.checked;
+      if (nameInput) updates.displayName = nameInput.value;
+
+      if (genderInput) updates.gender = genderInput.value || undefined;
+      if (birthDateInput) updates.birthDate = birthDateInput.value;
+      if (heightInput) updates.height = heightInput.value ? Number(heightInput.value) : undefined;
+      if (weightInput) updates.weight = weightInput.value ? Number(weightInput.value) : undefined;
+      if (additionalInfoInput) updates.additionalInfo = additionalInfoInput.value;
+
+      await storage.updateProfileSettings(updates);
+      showToast('Профиль сохранен');
       render();
     });
 
