@@ -546,7 +546,8 @@ function renderSettingsPage() {
         <div class="type-list" id="workout-type-list">
           ${types.map(t => `
             <div class="type-item" data-id="${t.id}">
-              <span>${t.name}</span>
+              <span class="drag-handle" style="cursor: grab; margin-right: 12px; opacity: 0.5;">⋮⋮</span>
+              <span style="flex-grow: 1;">${t.name}</span>
               <div style="display: flex; gap: 8px;">
                 <button class="type-item__edit icon-btn" data-id="${t.id}" title="Редактировать">✏️</button>
                 <button class="type-item__delete icon-btn" data-id="${t.id}" title="Удалить">×</button>
