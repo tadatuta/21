@@ -1238,7 +1238,7 @@ function bindPageEvents() {
     if (typeList) {
       Sortable.create(typeList, {
         animation: 150,
-        handle: '.type-item', // Drag by the whole item
+        handle: '.drag-handle',
         onEnd: async () => {
           // Get new order
           const newOrder = Array.from(typeList.children).map(child => child.getAttribute('data-id') || '').filter(Boolean);
