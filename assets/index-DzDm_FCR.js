@@ -335,7 +335,7 @@ var Xa=Object.defineProperty;var Va=(a,n,i)=>n in a?Xa(a,n,{enumerable:!0,config
       <div class="page-content">
         <div class="profile-loading">Загрузка профиля...</div>
       </div>
-    `;const a=Or;return`
+    `;const a=Or;return a.logs&&(a.logs=a.logs.filter(n=>!n.isDeleted)),a.workoutTypes&&(a.workoutTypes=a.workoutTypes.filter(n=>!n.isDeleted)),`
     <div class="page-content profile-page">
       <div class="profile-header">
         <div class="profile-avatar">
