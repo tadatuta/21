@@ -338,11 +338,13 @@ function renderMainPage() {
             <div class="form-row">
               <div class="form-group">
                 <label class="label">Вес (кг)</label>
-                <input class="input" type="number" name="weight" step="0.5" placeholder="0" value="${editingLogId && editingLog ? editingLog.weight : ''}">
+                <input class="input" type="number" name="weight" step="0.5" placeholder="0" value="${editingLogId && editingLog ? (editingLog.weight ?? '') : ''}">
+
               </div>
               <div class="form-group">
                 <label class="label">Повторений</label>
-                <input class="input" type="number" name="reps" placeholder="0" value="${editingLogId && editingLog ? editingLog.reps : ''}">
+                <input class="input" type="number" name="reps" placeholder="0" value="${editingLogId && editingLog ? (editingLog.reps ?? '') : ''}">
+
               </div>
             </div>
         </div>
@@ -356,7 +358,8 @@ function renderMainPage() {
 
         <button class="button" type="submit">${editingLogId ? 'Сохранить изменения' : 'Зафиксировать'}</button>
         ${editingLogId ? `<button class="button button_secondary" type="button" id="cancel-edit-btn" style="margin-top: 12px;">Отмена</button>` : ''}
-        ${!editingLogId && lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight ? `${lastLog.weight}кг × ${lastLog.reps}` : `${lastLog.duration} мин`}</button>` : ''}
+        ${!editingLogId && lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight !== undefined ? `${lastLog.weight}кг × ${lastLog.reps}` : `${lastLog.duration} мин`}</button>` : ''}
+
       </form>
       <div class="recent-logs">
         <div class="recent-logs__header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
