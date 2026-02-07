@@ -46,19 +46,19 @@ export class StorageService {
                     const now = new Date().toISOString();
 
                     // Migrate Types
-                    const types = (oldData.workoutTypes || defaultData.workoutTypes).map((t: any) => ({
+                    const types = (oldData.workoutTypes || defaultData.workoutTypes).map((t: Partial<WorkoutType>) => ({
                         ...t, updatedAt: now
                     }));
                     await db.workoutTypes.bulkPut(types);
 
                     // Migrate Logs
-                    const logs = (oldData.logs || []).map((l: any) => ({
+                    const logs = (oldData.logs || []).map((l: Partial<WorkoutSet>) => ({
                         ...l, updatedAt: now, workoutId: l.workoutId || 'legacy'
                     }));
                     await db.logs.bulkPut(logs);
 
                     // Migrate Workouts
-                    const workouts = (oldData.workouts || []).map((w: any) => ({
+                    const workouts = (oldData.workouts || []).map((w: Partial<WorkoutSession>) => ({
                         ...w, updatedAt: now
                     }));
                     await db.workouts.bulkPut(workouts);
@@ -126,9 +126,9 @@ export class StorageService {
             await SyncService.sync();
             this.setStatus('success');
             this.onUpdateCallback?.();
-        } catch (e: any) {
+        } catch (e: unknown) {
             console.error('Sync failed', e);
-            const msg = e.message?.toLowerCase() || '';
+            const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
             if (msg.includes('unauthorized')) {
                 // Check if we've already tried and failed
                 if (skipTmaAuth) {
@@ -142,7 +142,7 @@ export class StorageService {
                 location.reload();
                 return;
             }
-            if (e.message !== 'Offline') {
+            if (!(e instanceof Error && e.message === 'Offline')) {
                 this.setStatus('error');
             } else {
                 this.setStatus('idle'); // Offline is fine, just idle
@@ -474,7 +474,7 @@ export class StorageService {
             const response = await fetch(`${SERVER_URL}?profile=${encodeURIComponent(identifier)}`);
             if (!response.ok) return null;
             return await response.json();
-        } catch (e) {
+        } catch {
             return null;
         }
     }
