@@ -113,6 +113,7 @@ function render() {
   });
 
   bindPageEvents();
+  manageWorkoutTimer();
 }
 
 // Sync Status Logic
@@ -194,9 +195,12 @@ function renderWorkoutControls() {
     return `
       <div class="workout-controls card">
         <div class="workout-controls__header">
-          <span class="workout-status ${isPaused ? 'workout-status_paused' : ''}">
-            ${isPaused ? '⏸️ Пауза' : '🔥 Тренировка активна'}
-          </span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="workout-status ${isPaused ? 'workout-status_paused' : ''}">
+              ${isPaused ? '⏸️ Пауза' : '🔥 Тренировка активна'}
+            </span>
+            <span class="workout-timer">00:00</span>
+          </div>
           ${activeWorkout.name ? `<span class="workout-name">${activeWorkout.name}</span>` : ''}
         </div>
         <div class="workout-controls__actions">
@@ -228,6 +232,58 @@ function renderWorkoutControls() {
   return `
     <button class="button" id="start-workout-btn" style="margin-bottom: 24px;">▶️ Начать тренировку</button>
   `;
+}
+
+let workoutTimerInterval: ReturnType<typeof setInterval> | null = null;
+
+function updateWorkoutTimer() {
+  const activeWorkout = storage.getActiveWorkout();
+  const timerEl = document.querySelector('.workout-timer');
+
+  if (!activeWorkout || !timerEl) {
+    if (workoutTimerInterval) {
+      clearInterval(workoutTimerInterval);
+      workoutTimerInterval = null;
+    }
+    return;
+  }
+
+  const start = new Date(activeWorkout.startTime).getTime();
+  const now = Date.now();
+  let totalTime = now - start;
+
+  activeWorkout.pauseIntervals.forEach(interval => {
+    const pStart = new Date(interval.start).getTime();
+    const pEnd = interval.end ? new Date(interval.end).getTime() : (activeWorkout.status === 'paused' ? now : now);
+    if (pEnd > pStart) {
+      totalTime -= (pEnd - pStart);
+    }
+  });
+
+  const totalSeconds = Math.floor(Math.max(0, totalTime) / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  timerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// Start/Stop timer based on workout state
+function manageWorkoutTimer() {
+  const activeWorkout = storage.getActiveWorkout();
+
+  // Update once immediately to set initial state
+  updateWorkoutTimer();
+
+  if (activeWorkout && activeWorkout.status === 'active') {
+    if (!workoutTimerInterval) {
+      workoutTimerInterval = setInterval(updateWorkoutTimer, 1000);
+    }
+  } else {
+    if (workoutTimerInterval) {
+      clearInterval(workoutTimerInterval);
+      workoutTimerInterval = null;
+    }
+  }
 }
 
 let currentWeekOffset = 0;

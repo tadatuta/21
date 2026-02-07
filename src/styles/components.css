@@ -339,6 +339,17 @@
     gap: 8px;
 }
 
+.workout-timer {
+    font-family: monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text);
+    background-color: var(--color-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
 .workout-status_paused {
     color: var(--color-hint);
 }
