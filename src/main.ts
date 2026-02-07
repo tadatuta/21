@@ -708,7 +708,7 @@ function renderProfileSettingsPage() {
             <div class="settings-section-title">Друзья (${profile.friends.length})</div>
             <div class="friends-list">
                 ${profile.friends.map(f => `
-                    <div class="friend-item" onclick="location.href='${getProfileLink(f.identifier)}'" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer;">
+                    <a href="${getProfileLink(f.identifier)}" class="friend-item" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; text-decoration: none; color: inherit;">
                         <div class="friend-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color-alt); display: flex; align-items: center; justify-content: center; overflow: hidden;">
                             ${f.photoUrl ? `<img src="${f.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : f.displayName.charAt(0).toUpperCase()}
                         </div>
@@ -716,7 +716,7 @@ function renderProfileSettingsPage() {
                             <div class="friend-name" style="font-weight: 500;">${f.displayName}</div>
                         </div>
                         <div class="friend-arrow">›</div>
-                    </div>
+                    </a>
                 `).join('')}
             </div>
         </div>
