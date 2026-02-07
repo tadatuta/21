@@ -41,6 +41,14 @@ export interface UserProfile extends SyncItem {
     telegramUsername?: string;
     telegramUserId: number;
     createdAt: string;
+    friends?: Friend[];
+}
+
+export interface Friend {
+    identifier: string; // e.g., 'id_12345' or 'username'
+    displayName: string;
+    photoUrl?: string;
+    addedAt: string; // ISO
 }
 
 export interface PublicProfileData {

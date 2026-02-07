@@ -464,7 +464,8 @@ export class StorageService {
                 telegramUsername: user?.username,
                 photoUrl: user?.photo_url,
                 createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
+                friends: []
             } as UserProfile;
         } else {
             if (user?.photo_url) {
@@ -476,6 +477,38 @@ export class StorageService {
         await db.profile.put(merged);
         await this.reloadCache();
         this.sync().catch(() => { });
+    }
+
+    async addFriend(friend: { identifier: string; displayName: string; photoUrl?: string }): Promise<void> {
+        const profile = this.cache.profile;
+        if (!profile) return; // Should allow creating profile? Usually profile exists if auth.
+
+        const friends = profile.friends || [];
+        if (friends.some(f => f.identifier === friend.identifier)) return;
+
+        const newFriend = {
+            ...friend,
+            addedAt: new Date().toISOString()
+        };
+
+        await this.updateProfileSettings({
+            friends: [...friends, newFriend]
+        });
+    }
+
+    async removeFriend(identifier: string): Promise<void> {
+        const profile = this.cache.profile;
+        if (!profile || !profile.friends) return;
+
+        const newFriends = profile.friends.filter(f => f.identifier !== identifier);
+        await this.updateProfileSettings({
+            friends: newFriends
+        });
+    }
+
+    isFriend(identifier: string): boolean {
+        const profile = this.cache.profile;
+        return profile?.friends?.some(f => f.identifier === identifier) ?? false;
     }
 
     async updateWorkoutTypeOrder(ids: string[]): Promise<void> {

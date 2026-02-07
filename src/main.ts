@@ -15,6 +15,8 @@ import { registerSW } from 'virtual:pwa-register';
 import Sortable from 'sortablejs';
 import { downloadFile, generateMarkdown } from './utils/export';
 
+const getProfileLink = (identifier: string) => `https://tadatuta.github.io/21/?startapp=profile_${identifier}`;
+
 // Register Service Worker
 registerSW({ immediate: true });
 
@@ -625,7 +627,7 @@ function renderProfileSettingsPage() {
   const isPublic = profile?.isPublic ?? false;
   const displayName = profile?.displayName || WEBAPP?.initDataUnsafe?.user?.first_name || '';
   const identifier = storage.getProfileIdentifier();
-  const profileUrl = identifier ? `https://t.me/gymgym21bot/app?startapp=profile_${identifier}` : '';
+  const profileUrl = identifier ? getProfileLink(identifier) : '';
 
   // Calculate stats for preview
   const logs = storage.getLogs();
@@ -701,6 +703,25 @@ function renderProfileSettingsPage() {
           </div>
         </div>
 
+        ${profile?.friends && profile.friends.length > 0 ? `
+        <div class="settings-section">
+            <div class="settings-section-title">Друзья (${profile.friends.length})</div>
+            <div class="friends-list">
+                ${profile.friends.map(f => `
+                    <div class="friend-item" onclick="location.href='${getProfileLink(f.identifier)}'" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer;">
+                        <div class="friend-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color-alt); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                            ${f.photoUrl ? `<img src="${f.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : f.displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="friend-info" style="flex-grow: 1;">
+                            <div class="friend-name" style="font-weight: 500;">${f.displayName}</div>
+                        </div>
+                        <div class="friend-arrow">›</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        ` : ''}
+
         <div class="settings-section">
           <div class="settings-section-title">Управление данными</div>
           <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -763,6 +784,18 @@ function renderPublicProfilePage() {
         </div>
         <div class="profile-name">${profile.displayName}</div>
         <div class="profile-subtitle">@${profile.identifier}</div>
+        ${(function () {
+      const myProfile = storage.getProfile();
+      const isMe = myProfile && (myProfile.telegramUsername === profile.identifier || `id_${myProfile.telegramUserId}` === profile.identifier);
+      if (isMe) return '';
+
+      const isFriend = storage.isFriend(profile.identifier);
+      return `
+                <button class="button ${isFriend ? 'button_secondary' : ''}" id="friend-action-btn" data-id="${profile.identifier}" data-name="${profile.displayName}" data-photo="${profile.photoUrl || ''}" style="margin-top: 12px; height: 36px; font-size: 14px; display: flex; align-items: center; justify-content: center;">
+                    ${isFriend ? 'Удалить из друзей' : 'Добавить в друзья'}
+                </button>
+            `;
+    })()}
       </div>
 
       <div class="profile-stats">
@@ -1324,24 +1357,28 @@ function bindPageEvents() {
     const copyBtn = document.getElementById('copy-profile-link');
     copyBtn?.addEventListener('click', () => {
       const identifier = storage.getProfileIdentifier();
-      const profileUrl = `https://t.me/gymgym21bot/app?startapp=profile_${identifier}`;
-      navigator.clipboard.writeText(profileUrl).then(() => {
-        showToast('Ссылка скопирована');
-      });
+      if (identifier) {
+        const profileUrl = getProfileLink(identifier);
+        navigator.clipboard.writeText(profileUrl).then(() => {
+          showToast('Ссылка скопирована');
+        });
+      }
     });
 
     const shareBtn = document.getElementById('share-profile-link');
     /*eslint no-empty: "error"*/
     shareBtn?.addEventListener('click', () => {
       const identifier = storage.getProfileIdentifier();
-      const profileUrl = `https://t.me/gymgym21bot/app?startapp=profile_${identifier}`;
-      if (WEBAPP?.openTelegramLink) {
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(profileUrl)}&text=${encodeURIComponent('Мой профиль тренировок 💪')}`;
-        WEBAPP.openTelegramLink(shareUrl);
-      } else {
-        navigator.clipboard.writeText(profileUrl).then(() => {
-          showToast('Ссылка скопирована');
-        });
+      if (identifier) {
+        const profileUrl = getProfileLink(identifier);
+        if (WEBAPP?.openTelegramLink) {
+          const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(profileUrl)}&text=${encodeURIComponent('Мой профиль тренировок 💪')}`;
+          WEBAPP.openTelegramLink(shareUrl);
+        } else {
+          navigator.clipboard.writeText(profileUrl).then(() => {
+            showToast('Ссылка скопирована');
+          });
+        }
       }
     });
 
@@ -1417,6 +1454,34 @@ function bindPageEvents() {
     typeSelect?.addEventListener('change', (e) => {
       selectedStatType = (e.target as HTMLSelectElement).value;
       render();
+    });
+  }
+
+  if (currentPage === 'public-profile') {
+    const friendBtn = document.getElementById('friend-action-btn');
+    friendBtn?.addEventListener('click', async () => {
+      const id = friendBtn.getAttribute('data-id');
+      const name = friendBtn.getAttribute('data-name');
+      const photo = friendBtn.getAttribute('data-photo');
+
+      if (id && name) {
+        const isFriend = storage.isFriend(id);
+        if (isFriend) {
+          if (confirm('Удалить пользователя из друзей?')) {
+            await storage.removeFriend(id);
+            storage.sync().catch(() => { });
+          }
+        } else {
+          await storage.addFriend({
+            identifier: id,
+            displayName: name,
+            photoUrl: photo || undefined
+          });
+          showToast('Пользователь добавлен в друзья');
+          storage.sync().catch(() => { });
+        }
+        render();
+      }
     });
   }
 }
