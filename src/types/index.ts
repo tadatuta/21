@@ -1,6 +1,11 @@
 export type WorkoutStatus = 'active' | 'paused' | 'finished';
 
-export interface WorkoutSession {
+export interface SyncItem {
+    updatedAt: string; // ISO
+    isDeleted?: boolean;
+}
+
+export interface WorkoutSession extends SyncItem {
     id: string;
     startTime: string; // ISO
     endTime?: string; // ISO
@@ -10,12 +15,12 @@ export interface WorkoutSession {
     pauseIntervals: { start: string; end?: string }[];
 }
 
-export interface WorkoutType {
+export interface WorkoutType extends SyncItem {
     id: string;
     name: string;
 }
 
-export interface WorkoutSet {
+export interface WorkoutSet extends SyncItem {
     id: string;
     workoutTypeId: string;
     workoutId: string; // Linked to WorkoutSession
@@ -24,7 +29,8 @@ export interface WorkoutSet {
     date: string; // ISO string
 }
 
-export interface UserProfile {
+export interface UserProfile extends SyncItem {
+    id: string; // 'me' or telegram user id
     isPublic: boolean;
     showFullHistory?: boolean;
     displayName?: string;

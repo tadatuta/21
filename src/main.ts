@@ -11,6 +11,10 @@ import { renderHeatmap } from './components/stats/Heatmap';
 import { renderVolumeChart, render1RMChart, renderDurationChart } from './components/stats/Charts';
 import { getAuthData, saveAuthData, TelegramLoginData } from './auth';
 import { renderLogin } from './components/auth/Login';
+import { registerSW } from 'virtual:pwa-register';
+
+// Register Service Worker
+registerSW({ immediate: true });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WEBAPP = (window as any).Telegram?.WebApp;
@@ -61,6 +65,17 @@ function render() {
   const app = document.getElementById('app');
   if (!app) return;
 
+  // Don't render main content if not authenticated
+  const skipTmaAuth = localStorage.getItem('skip_tma_auth') === 'true';
+  const isTma = !!(WEBAPP?.initData) && !skipTmaAuth;
+  const authData = getAuthData();
+  const isWebAuth = !!authData;
+
+  if (!isTma && !isWebAuth) {
+    // Not authenticated, don't overwrite login screen
+    return;
+  }
+
   app.innerHTML = `
     <main class="content">
       ${renderPage()}
@@ -83,6 +98,7 @@ function render() {
         <span class="navigation__label">Настройки</span>
       </button>
     </nav>
+    <div id="sync-status" class="sync-status"></div>
   `;
 
   // Bind events
@@ -95,6 +111,58 @@ function render() {
 
   bindPageEvents();
 }
+
+// Sync Status Logic
+let syncStatus: SyncStatus = 'idle';
+storage.onSyncStatusChange((status) => {
+  syncStatus = status;
+  updateSyncStatusUI();
+});
+
+function updateSyncStatusUI() {
+  const statusEl = document.getElementById('sync-status');
+  if (!statusEl) return;
+
+  statusEl.className = 'sync-status';
+  let text = '';
+  let icon = '';
+
+  switch (syncStatus) {
+    case 'saving':
+      text = 'Синхронизация...';
+      icon = '🔄';
+      statusEl.classList.add('sync-status_saving');
+      break;
+    case 'success':
+      text = 'Сохранено';
+      icon = '✅';
+      statusEl.classList.add('sync-status_success');
+      break;
+    case 'error':
+      text = 'Ошибка синхронизации';
+      icon = '⚠️';
+      statusEl.classList.add('sync-status_error');
+      break;
+    case 'idle':
+      if (!navigator.onLine) {
+        text = 'Оффлайн';
+        icon = '📡';
+        statusEl.classList.add('sync-status_offline');
+      } else {
+        return; // Hide if idle and online
+      }
+      break;
+  }
+
+  statusEl.innerHTML = `${icon} ${text}`;
+}
+
+// Listen to network status
+window.addEventListener('online', () => {
+  storage.sync();
+  updateSyncStatusUI();
+});
+window.addEventListener('offline', () => updateSyncStatusUI());
 
 function renderPage() {
   switch (currentPage) {
@@ -1126,7 +1194,8 @@ async function initApp() {
   }
 
   // 2. Standard Auth Check
-  const isTma = !!(WEBAPP?.initData);
+  const skipTmaAuth = localStorage.getItem('skip_tma_auth') === 'true';
+  const isTma = !!(WEBAPP?.initData) && !skipTmaAuth;
   const authData = getAuthData();
   const isWebAuth = !!authData;
 
