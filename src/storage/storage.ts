@@ -204,10 +204,11 @@ export class StorageService {
         return this.cache.profile;
     }
 
-    async addWorkoutType(name: string): Promise<WorkoutType> {
+    async addWorkoutType(name: string, category: 'strength' | 'time' = 'strength'): Promise<WorkoutType> {
         const newType: WorkoutType = {
             id: Date.now().toString(),
             name,
+            category,
             updatedAt: new Date().toISOString()
         };
         await db.workoutTypes.put(newType);
@@ -227,10 +228,11 @@ export class StorageService {
         }
     }
 
-    async updateWorkoutType(id: string, name: string): Promise<void> {
+    async updateWorkoutType(id: string, name: string, category?: 'strength' | 'time'): Promise<void> {
         const type = await db.workoutTypes.get(id);
         if (type) {
             type.name = name;
+            if (category) type.category = category;
             type.updatedAt = new Date().toISOString();
             await db.workoutTypes.put(type);
             await this.reloadCache();

@@ -8,7 +8,7 @@ export function renderVolumeChart(logs: WorkoutSet[]): string {
     const volumeByDate = new Map<string, number>();
     logs.forEach(log => {
         const date = log.date.split('T')[0];
-        const vol = log.weight * log.reps;
+        const vol = (log.weight || 0) * (log.reps || 0);
         volumeByDate.set(date, (volumeByDate.get(date) || 0) + vol);
     });
 

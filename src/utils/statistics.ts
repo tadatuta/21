@@ -4,7 +4,7 @@ import { WorkoutSet, WorkoutSession } from '../types';
  * Calculates the Estimated One Rep Max (1RM) using the Epley formula.
  * 1RM = Weight * (1 + Reps / 30)
  */
-export function calculateOneRepMax(weight: number, reps: number): number {
+export function calculateOneRepMax(weight: number = 0, reps: number = 0): number {
     if (reps === 1) return weight;
     return Math.round(weight * (1 + reps / 30));
 }
@@ -21,7 +21,7 @@ export function getVolumeByDate(logs: WorkoutSet[], workoutTypeId: string | 'all
 
     filteredLogs.forEach(log => {
         const date = log.date.split('T')[0];
-        const volume = log.weight * log.reps;
+        const volume = (log.weight || 0) * (log.reps || 0);
         const currentVolume = volumeMap.get(date) || 0;
         volumeMap.set(date, currentVolume + volume);
     });
@@ -40,7 +40,7 @@ export function getOneRepMaxByDate(logs: WorkoutSet[], workoutTypeId: string): M
 
     filteredLogs.forEach(log => {
         const date = log.date.split('T')[0];
-        const oneRepMax = calculateOneRepMax(log.weight, log.reps);
+        const oneRepMax = calculateOneRepMax(log.weight || 0, log.reps || 0);
         const currentMax = maxMap.get(date) || 0;
 
         if (oneRepMax > currentMax) {

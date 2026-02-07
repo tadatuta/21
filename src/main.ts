@@ -271,23 +271,34 @@ function renderMainPage() {
       <form class="workout-form" id="log-form">
         <div class="form-group">
           <label class="label">Тип тренировки</label>
-          <select class="select" name="typeId" required>
+          <select class="select" name="typeId" id="workout-type-select" required>
             ${types.map(t => `<option value="${t.id}" ${(editingLogId ? (editingLog && t.id === editingLog.workoutTypeId) : (t.id === lastTypeId)) ? 'selected' : ''}>${t.name}</option>`).join('')}
           </select>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="label">Вес (кг)</label>
-            <input class="input" type="number" name="weight" step="0.5" required placeholder="0" value="${editingLogId && editingLog ? editingLog.weight : ''}">
-          </div>
-          <div class="form-group">
-            <label class="label">Повторений</label>
-            <input class="input" type="number" name="reps" required placeholder="0" value="${editingLogId && editingLog ? editingLog.reps : ''}">
-          </div>
+        
+        <div id="strength-inputs" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="label">Вес (кг)</label>
+                <input class="input" type="number" name="weight" step="0.5" placeholder="0" value="${editingLogId && editingLog ? editingLog.weight : ''}">
+              </div>
+              <div class="form-group">
+                <label class="label">Повторений</label>
+                <input class="input" type="number" name="reps" placeholder="0" value="${editingLogId && editingLog ? editingLog.reps : ''}">
+              </div>
+            </div>
         </div>
+
+        <div id="time-inputs" style="display: none;">
+            <div class="form-group">
+                <label class="label">Время (мин)</label>
+                <input class="input" type="number" name="duration" placeholder="0" value="${editingLogId && editingLog ? (editingLog.duration || '') : ''}">
+            </div>
+        </div>
+
         <button class="button" type="submit">${editingLogId ? 'Сохранить изменения' : 'Зафиксировать'}</button>
         ${editingLogId ? `<button class="button button_secondary" type="button" id="cancel-edit-btn" style="margin-top: 12px;">Отмена</button>` : ''}
-        ${!editingLogId && lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight}кг × ${lastLog.reps}</button>` : ''}
+        ${!editingLogId && lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight ? `${lastLog.weight}кг × ${lastLog.reps}` : `${lastLog.duration} мин`}</button>` : ''}
       </form>
       <div class="recent-logs">
         <div class="recent-logs__header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -473,9 +484,13 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
                 ${sets.map(set => `
                   <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''} ${set.id === lastAddedLogId ? 'log-set_new' : ''}">
                     <div class="log-set__info">
-                      <span class="log-set__weight">${set.weight} кг</span>
-                      <span class="log-set__times">×</span>
-                      <span class="log-set__reps">${set.reps}</span>
+                      ${set.weight !== undefined && set.reps !== undefined ? `
+                        <span class="log-set__weight">${set.weight} кг</span>
+                        <span class="log-set__times">×</span>
+                        <span class="log-set__reps">${set.reps}</span>
+                      ` : `
+                        <span class="log-set__reps">⏱ ${set.duration} мин</span>
+                      `}
                     </div>
                     ${isEditable ? `
                     <div class="log-set__actions">
@@ -507,8 +522,20 @@ function renderSettingsPage() {
       <div class="settings-section">
         <h2 class="subtitle">${editingTypeId ? 'Редактирование типа' : 'Добавить тип тренировки'}</h2>
         <form class="add-type-form" id="add-type-form" style="margin-bottom: 24px;">
-          <div style="display: flex; gap: 8px;">
+          <div style="display: flex; gap: 8px; flex-direction: column;">
             <input class="input" type="text" id="new-type-name" placeholder="Название (напр. Жим гантелей)" required value="${editingType ? editingType.name : ''}">
+            
+            <div class="category-switch" style="display: flex; gap: 12px; margin-bottom: 8px;">
+                <label style="display: flex; align-items: center; gap: 4px;">
+                    <input type="radio" name="new-type-category" value="strength" ${!editingType || editingType.category !== 'time' ? 'checked' : ''}>
+                    Силовое
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px;">
+                    <input type="radio" name="new-type-category" value="time" ${editingType && editingType.category === 'time' ? 'checked' : ''}>
+                    На время
+                </label>
+            </div>
+
             <button class="button" type="submit">${editingTypeId ? 'Сохранить' : 'Добавить'}</button>
           </div>
           ${editingTypeId ? `<button class="button button_secondary" type="button" id="cancel-edit-type-btn" style="margin-top: 8px; width: 100%;">Отмена</button>` : ''}
@@ -540,7 +567,7 @@ function renderProfileSettingsPage() {
 
   // Calculate stats for preview
   const logs = storage.getLogs();
-  const totalVolume = logs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
+  const totalVolume = logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
   const uniqueDays = new Set(logs.map(l => l.date.split('T')[0])).size;
 
   return `
@@ -721,8 +748,8 @@ function renderStatsPage() {
   }
 
   // Calculate generic stats
-  const totalVolume = logs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
-  const totalReps = logs.reduce((acc, l) => acc + l.reps, 0);
+  const totalVolume = logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
+  const totalReps = logs.reduce((acc, l) => acc + (l.reps || 0), 0);
   const durationStats = getDurationStats(workouts);
 
   let html = `
@@ -844,13 +871,17 @@ function formatWorkoutForShare(dateStr: string): string {
     const type = types.find(t => t.id === typeId);
     text += `${type?.name || 'Упражнение'}:\n`;
     sets.forEach(set => {
-      text += `  ${set.weight} кг × ${set.reps}\n`;
+      if (set.duration) {
+        text += `  ⏱ ${set.duration} мин\n`;
+      } else {
+        text += `  ${set.weight} кг × ${set.reps}\n`;
+      }
     });
     text += '\n';
   });
 
   // Calculate total volume
-  const totalVolume = dayLogs.reduce((acc, l) => acc + (l.weight * l.reps), 0);
+  const totalVolume = dayLogs.reduce((acc, l) => acc + (l.weight && l.reps ? (l.weight * l.reps) : 0), 0);
   text += `💪 Общий объём: ${Math.round(totalVolume)} кг`;
 
   return text;
@@ -918,14 +949,57 @@ function bindPageEvents() {
     });
 
     const form = document.getElementById('log-form') as HTMLFormElement;
+
+    // Helper to update visibility
+    const updateFormVisibility = () => {
+      const typeSelect = document.getElementById('workout-type-select') as HTMLSelectElement;
+      const types = storage.getWorkoutTypes();
+      const selectedId = typeSelect?.value;
+      const selectedType = types.find(t => t.id === selectedId);
+
+      const strengthInputs = document.getElementById('strength-inputs');
+      const timeInputs = document.getElementById('time-inputs');
+
+      if (selectedType && selectedType.category === 'time') {
+        if (strengthInputs) strengthInputs.style.display = 'none';
+        if (timeInputs) timeInputs.style.display = 'block';
+
+        // Required attributes management
+        form.querySelectorAll('input[name="weight"], input[name="reps"]').forEach(el => el.removeAttribute('required'));
+        form.querySelectorAll('input[name="duration"]').forEach(el => el.setAttribute('required', 'true'));
+      } else {
+        if (strengthInputs) strengthInputs.style.display = 'block';
+        if (timeInputs) timeInputs.style.display = 'none';
+
+        form.querySelectorAll('input[name="weight"], input[name="reps"]').forEach(el => el.setAttribute('required', 'true'));
+        form.querySelectorAll('input[name="duration"]').forEach(el => el.removeAttribute('required'));
+      }
+    };
+
+    // Initial check
+    updateFormVisibility();
+
+    // Listen for changes
+    const typeSelect = document.getElementById('workout-type-select');
+    typeSelect?.addEventListener('change', updateFormVisibility);
+
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
-      const logData = {
-        workoutTypeId: formData.get('typeId') as string,
-        weight: parseFloat(formData.get('weight') as string),
-        reps: parseInt(formData.get('reps') as string, 10)
+      const typeId = formData.get('typeId') as string;
+      const types = storage.getWorkoutTypes();
+      const type = types.find(t => t.id === typeId);
+
+      const logData: Partial<WorkoutSet> & { workoutTypeId: string } = {
+        workoutTypeId: typeId,
       };
+
+      if (type?.category === 'time') {
+        logData.duration = parseInt(formData.get('duration') as string, 10);
+      } else {
+        logData.weight = parseFloat(formData.get('weight') as string);
+        logData.reps = parseInt(formData.get('reps') as string, 10);
+      }
 
       if (editingLogId) {
         const logs = storage.getLogs();
@@ -953,7 +1027,8 @@ function bindPageEvents() {
         const newLog = await storage.addLog({
           workoutTypeId: lastLog.workoutTypeId,
           weight: lastLog.weight,
-          reps: lastLog.reps
+          reps: lastLog.reps,
+          duration: lastLog.duration
         });
         lastAddedLogId = newLog.id;
         render();
@@ -1046,12 +1121,14 @@ function bindPageEvents() {
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = document.getElementById('new-type-name') as HTMLInputElement;
+      const category = (document.querySelector('input[name="new-type-category"]:checked') as HTMLInputElement)?.value as 'strength' | 'time';
+
       if (input.value) {
         if (editingTypeId) {
-          await storage.updateWorkoutType(editingTypeId, input.value);
+          await storage.updateWorkoutType(editingTypeId, input.value, category);
           editingTypeId = null;
         } else {
-          await storage.addWorkoutType(input.value);
+          await storage.addWorkoutType(input.value, category);
         }
         render();
       }

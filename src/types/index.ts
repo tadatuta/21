@@ -18,14 +18,16 @@ export interface WorkoutSession extends SyncItem {
 export interface WorkoutType extends SyncItem {
     id: string;
     name: string;
+    category?: 'strength' | 'time'; // Default to 'strength' if undefined
 }
 
 export interface WorkoutSet extends SyncItem {
     id: string;
     workoutTypeId: string;
     workoutId: string; // Linked to WorkoutSession
-    reps: number;
-    weight: number;
+    reps?: number; // Optional for time-based
+    weight?: number; // Optional for time-based
+    duration?: number; // In minutes, for time-based
     date: string; // ISO string
 }
 
