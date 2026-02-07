@@ -46,6 +46,13 @@
     color: var(--color-text);
     font-size: 16px;
     transition: border-color 0.2s;
+    min-height: 44px;
+}
+
+.input {
+    -webkit-appearance: none;
+    appearance: none;
+    line-height: normal;
 }
 
 .input:focus,
