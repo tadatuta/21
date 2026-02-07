@@ -882,7 +882,9 @@ function formatWorkoutForShare(dateStr: string): string {
 
   // Calculate total volume
   const totalVolume = dayLogs.reduce((acc, l) => acc + (l.weight && l.reps ? (l.weight * l.reps) : 0), 0);
-  text += `💪 Общий объём: ${Math.round(totalVolume)} кг`;
+  if (totalVolume) {
+    text += `💪 Общий объём: ${Math.round(totalVolume)} кг`;
+  }
 
   return text;
 }
