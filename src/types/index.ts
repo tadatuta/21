@@ -57,16 +57,19 @@ export interface Friend {
     addedAt: string; // ISO
 }
 
+
+export interface ProfileStats {
+    totalWorkouts: number;
+    totalVolume: number;
+    favoriteExercise?: string;
+    lastWorkoutDate?: string;
+}
+
 export interface PublicProfileData {
     displayName: string;
     photoUrl?: string;
     identifier: string; // username или id_123456
-    stats: {
-        totalWorkouts: number;
-        totalVolume: number;
-        favoriteExercise?: string;
-        lastWorkoutDate?: string;
-    };
+    stats: ProfileStats;
     recentActivity: {
         date: string;
         exerciseCount: number;

@@ -14,6 +14,8 @@ import { renderLogin } from './components/auth/Login';
 import { registerSW } from 'virtual:pwa-register';
 import Sortable from 'sortablejs';
 import { downloadFile, generateMarkdown } from './utils/export';
+import { renderProfileStats } from './components/profile/ProfileStats';
+import { ProfileStats } from './types';
 
 const getProfileLink = (identifier: string) => `https://tadatuta.github.io/21/?startapp=profile_${identifier}`;
 
@@ -629,10 +631,7 @@ function renderProfileSettingsPage() {
   const identifier = storage.getProfileIdentifier();
   const profileUrl = identifier ? getProfileLink(identifier) : '';
 
-  // Calculate stats for preview
-  const logs = storage.getLogs();
-  const totalVolume = logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
-  const uniqueDays = new Set(logs.map(l => l.date.split('T')[0])).size;
+
 
   return `
     <div class="page-content profile-page">
@@ -726,17 +725,43 @@ function renderProfileSettingsPage() {
         ` : ''}
 
         <div class="settings-section">
+        <div class="settings-section">
           <div class="settings-section-title">Превью статистики</div>
-          <div class="profile-stats">
-            <div class="stat-card">
-              <div class="stat-value">${uniqueDays}</div>
-              <div class="stat-label">Тренировок</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-value">${Math.round(totalVolume / 1000)}т</div>
-              <div class="stat-label">Общий объём</div>
-            </div>
-          </div>
+          ${(function () {
+      const logs = storage.getLogs();
+      const workoutTypes = storage.getWorkoutTypes();
+
+      // Calculate stats
+      const totalVolume = logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
+      const uniqueDaysSet = new Set(logs.map(l => l.date.split('T')[0]));
+      const totalWorkouts = uniqueDaysSet.size;
+
+      const lastWorkoutDate = logs.length > 0 ? [...logs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date : undefined;
+
+      // Favorite exercise
+      const typeCounts = new Map<string, number>();
+      logs.forEach(l => {
+        typeCounts.set(l.workoutTypeId, (typeCounts.get(l.workoutTypeId) || 0) + 1);
+      });
+      let favoriteExercise = undefined;
+      let maxCount = 0;
+      typeCounts.forEach((count, typeId) => {
+        if (count > maxCount) {
+          maxCount = count;
+          const type = workoutTypes.find(t => t.id === typeId);
+          if (type) favoriteExercise = type.name;
+        }
+      });
+
+      const stats: ProfileStats = {
+        totalWorkouts,
+        totalVolume,
+        favoriteExercise,
+        lastWorkoutDate
+      };
+
+      return renderProfileStats(stats, uniqueDaysSet);
+    })()}
         </div>
 
         ${profile?.friends && profile.friends.length > 0 ? `
@@ -834,58 +859,24 @@ function renderPublicProfilePage() {
     })()}
       </div>
 
-      <div class="profile-stats">
-        <div class="stat-card">
-          <div class="stat-value">${profile.stats.totalWorkouts}</div>
-          <div class="stat-label">Тренировок</div>
-        </div>
-        <div class="stat-card">
-          ${(function () {
-      // Calculate volume from logs if available (client-side fallback/correction)
+      ${(function () {
       let calculatedVolume = 0;
       if (profile.logs) {
         calculatedVolume = profile.logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
       }
-
-      // Use the larger value (server stats might be stale or incorrect)
       const totalVolume = Math.max(profile.stats.totalVolume, calculatedVolume);
 
-      let volumeDisplay = '';
-      if (totalVolume < 1000) {
-        volumeDisplay = `${Math.round(totalVolume)}кг`;
-      } else if (totalVolume < 10000) {
-        volumeDisplay = `${(totalVolume / 1000).toFixed(1)}т`;
-      } else {
-        volumeDisplay = `${Math.round(totalVolume / 1000)}т`;
-      }
+      const stats: ProfileStats = {
+        ...profile.stats,
+        totalVolume
+      };
 
-      return `<div class="stat-value">${volumeDisplay}</div>`;
+      const logDates = profile.logs ? new Set(profile.logs.map(l => l.date.split('T')[0])) : new Set<string>();
+      return renderProfileStats(stats, logDates);
     })()}
-          <div class="stat-label">Общий объём</div>
-        </div>
-        ${profile.stats.favoriteExercise ? `
-          <div class="stat-card">
-            <div class="stat-value" style="font-size: 1rem;">${profile.stats.favoriteExercise}</div>
-            <div class="stat-label">Любимое упражнение</div>
-          </div>
-        ` : ''}
-        ${profile.stats.lastWorkoutDate ? `
-          <div class="stat-card">
-            <div class="stat-value" style="font-size: 1rem;">${new Date(profile.stats.lastWorkoutDate).toLocaleDateString()}</div>
-            <div class="stat-label">Последняя тренировка</div>
-          </div>
-        ` : ''}
-      </div>
 
       ${profile.recentActivity.length > 0 ? `
         <div class="activity-list">
-          ${profile.logs && profile.logs.length > 0 ? `
-          <h2 class="subtitle">Активность</h2>
-          <div class="heatmap-container" style="margin-bottom: 24px;">
-            ${renderHeatmap(new Set(profile.logs.map(l => l.date.split('T')[0])))}
-          </div>
-          ` : ''}
-
           <h2 class="subtitle">Недавняя активность</h2>
           ${profile.recentActivity.map(a => `
             <div class="activity-item">
