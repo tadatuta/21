@@ -373,7 +373,7 @@ var Xa=Object.defineProperty;var Va=(a,n,i)=>n in a?Xa(a,n,{enumerable:!0,config
           ${a.logs&&a.logs.length>0?`
           <h2 class="subtitle">Активность</h2>
           <div class="heatmap-container" style="margin-bottom: 24px;">
-            ${Vi(new Set(a.recentActivity.map(n=>n.date.split("T")[0])))}
+            ${Vi(new Set(a.logs.map(n=>n.date.split("T")[0])))}
           </div>
           `:""}
 
