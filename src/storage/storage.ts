@@ -1,7 +1,7 @@
 import { AppData, WorkoutType, WorkoutSet, UserProfile, PublicProfileData, WorkoutSession } from '../types';
 import { SyncService } from '../services/sync';
 import { db } from '../db';
-import { clearAuthData } from '../auth';
+import { clearAuthData, getAuthString } from '../auth';
 
 const STORAGE_KEY = 'gym_twa_data'; // Keeping for migration check
 
@@ -113,7 +113,7 @@ export class StorageService {
         // Early exit: if TMA auth is known to be broken and no web auth, don't even try
         const skipTmaAuth = localStorage.getItem('skip_tma_auth') === 'true';
         if (skipTmaAuth) {
-            const webAuth = (await import('../auth')).getAuthString();
+            const webAuth = getAuthString();
             if (!webAuth) {
                 // No valid auth available, skip sync entirely
                 this.setStatus('idle');
@@ -314,18 +314,23 @@ export class StorageService {
     getWorkoutDuration(workout: WorkoutSession): number {
         const start = new Date(workout.startTime).getTime();
         const end = workout.endTime ? new Date(workout.endTime).getTime() : Date.now();
-        let totalTime = end - start;
+        let sessionDuration = end - start;
 
         workout.pauseIntervals.forEach(interval => {
             const pStart = new Date(interval.start).getTime();
             const pEnd = interval.end ? new Date(interval.end).getTime() : (workout.status === 'paused' ? Date.now() : end);
             if (pEnd > pStart) {
-                totalTime -= (pEnd - pStart);
+                sessionDuration -= (pEnd - pStart);
             }
         });
 
-        const minutes = Math.floor(Math.max(0, totalTime) / 60000);
-        return minutes;
+        const sessionMinutes = Math.floor(Math.max(0, sessionDuration) / 60000);
+
+        // Calculate duration from logs (time-based exercises)
+        const workoutLogs = this.cache.logs.filter(l => l.workoutId === workout.id && !l.isDeleted);
+        const exercisesDuration = workoutLogs.reduce((acc, log) => acc + (log.duration || 0), 0);
+
+        return Math.max(sessionMinutes, exercisesDuration);
     }
 
     private async ensureActiveWorkout(): Promise<string> {
