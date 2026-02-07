@@ -840,7 +840,27 @@ function renderPublicProfilePage() {
           <div class="stat-label">Тренировок</div>
         </div>
         <div class="stat-card">
-          <div class="stat-value">${Math.round(profile.stats.totalVolume / 1000)}т</div>
+          ${(function () {
+      // Calculate volume from logs if available (client-side fallback/correction)
+      let calculatedVolume = 0;
+      if (profile.logs) {
+        calculatedVolume = profile.logs.reduce((acc, l) => acc + ((l.weight || 0) * (l.reps || 0)), 0);
+      }
+
+      // Use the larger value (server stats might be stale or incorrect)
+      const totalVolume = Math.max(profile.stats.totalVolume, calculatedVolume);
+
+      let volumeDisplay = '';
+      if (totalVolume < 1000) {
+        volumeDisplay = `${Math.round(totalVolume)}кг`;
+      } else if (totalVolume < 10000) {
+        volumeDisplay = `${(totalVolume / 1000).toFixed(1)}т`;
+      } else {
+        volumeDisplay = `${Math.round(totalVolume / 1000)}т`;
+      }
+
+      return `<div class="stat-value">${volumeDisplay}</div>`;
+    })()}
           <div class="stat-label">Общий объём</div>
         </div>
         ${profile.stats.favoriteExercise ? `
