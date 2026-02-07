@@ -82,9 +82,7 @@ var Xa=Object.defineProperty;var Ga=(i,n,o)=>n in i?Xa(i,n,{enumerable:!0,config
       ${n&&n.size>0?`
         <div class="activity-list">
           <h2 class="subtitle">Активность</h2>
-          <div class="heatmap-container" style="margin-bottom: 24px;">
-            ${Xi(n)}
-          </div>
+          ${Xi(n)}
         </div>
       `:""}
     `}const Ar=i=>`https://tadatuta.github.io/21/?startapp=profile_${i}`;ps({immediate:!0});var Yi;const Et=(Yi=window.Telegram)==null?void 0:Yi.WebApp;Et&&(Et.ready(),Et.expand());let qt="main",dn="all",Ot=null,fa=null,Pr=null,$o=!1,Pn=null,Kt=null,kr="overview",Ue="ai",qo=!1,Sr=!1;function Fs(i){qt=i,gt()}let To=null;function ue(i){let n=document.querySelector(".toast");n||(n=document.createElement("div"),n.className="toast",document.body.appendChild(n)),n.textContent=i,n.classList.add("visible"),To&&clearTimeout(To),To=setTimeout(()=>{n==null||n.classList.remove("visible")},2e3)}function gt(){const i=document.getElementById("app");if(!i)return;const n=localStorage.getItem("skip_tma_auth")==="true",o=!!(Et!=null&&Et.initData)&&!n,c=!!Lo();!o&&!c||(i.innerHTML=`
