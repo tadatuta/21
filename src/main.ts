@@ -780,6 +780,13 @@ function renderPublicProfilePage() {
 
       ${profile.recentActivity.length > 0 ? `
         <div class="activity-list">
+          ${profile.logs && profile.logs.length > 0 ? `
+          <h2 class="subtitle">Активность</h2>
+          <div class="heatmap-container" style="margin-bottom: 24px;">
+            ${renderHeatmap(new Set(profile.logs.map(l => l.date.split('T')[0])))}
+          </div>
+          ` : ''}
+
           <h2 class="subtitle">Недавняя активность</h2>
           ${profile.recentActivity.map(a => `
             <div class="activity-item">
