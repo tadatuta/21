@@ -355,9 +355,15 @@ function renderMainPage() {
         </div>
 
         <div id="time-inputs" style="display: none;">
-            <div class="form-group">
-                <label class="label">Время (мин)</label>
-                <input class="input" type="number" name="duration" placeholder="0" value="${editingLogId && editingLog ? (editingLog.duration || '') : ''}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="label">Часы</label>
+                    <input class="input" type="number" name="duration_hours" placeholder="0" value="${editingLogId && editingLog && editingLog.duration ? Math.floor(editingLog.duration / 60) : ''}">
+                </div>
+                <div class="form-group">
+                    <label class="label">Минуты</label>
+                    <input class="input" type="number" name="duration_minutes" placeholder="0" value="${editingLogId && editingLog && editingLog.duration ? (editingLog.duration % 60) : ''}">
+                </div>
             </div>
         </div>
 
@@ -1157,13 +1163,14 @@ function bindPageEvents() {
 
         // Required attributes management
         form.querySelectorAll('input[name="weight"], input[name="reps"]').forEach(el => el.removeAttribute('required'));
-        form.querySelectorAll('input[name="duration"]').forEach(el => el.setAttribute('required', 'true'));
+        // Optional hours/minutes, default to 0 if empty
+        form.querySelectorAll('input[name="duration_hours"], input[name="duration_minutes"]').forEach(el => el.removeAttribute('required'));
       } else {
         if (strengthInputs) strengthInputs.style.display = 'block';
         if (timeInputs) timeInputs.style.display = 'none';
 
         form.querySelectorAll('input[name="weight"], input[name="reps"]').forEach(el => el.setAttribute('required', 'true'));
-        form.querySelectorAll('input[name="duration"]').forEach(el => el.removeAttribute('required'));
+        form.querySelectorAll('input[name="duration_hours"], input[name="duration_minutes"]').forEach(el => el.removeAttribute('required'));
       }
     };
 
@@ -1186,7 +1193,9 @@ function bindPageEvents() {
       };
 
       if (type?.category === 'time') {
-        logData.duration = parseInt(formData.get('duration') as string, 10);
+        const hours = parseInt(formData.get('duration_hours') as string, 10) || 0;
+        const minutes = parseInt(formData.get('duration_minutes') as string, 10) || 0;
+        logData.duration = (hours * 60) + minutes;
       } else {
         logData.weight = parseFloat(formData.get('weight') as string);
         logData.reps = parseInt(formData.get('reps') as string, 10);
