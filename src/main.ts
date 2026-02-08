@@ -361,6 +361,13 @@ function renderMainPage() {
             </div>
         </div>
 
+        ${editingLogId && editingLog ? `
+        <div class="form-group">
+          <label class="label">Дата</label>
+          <input class="input" type="date" name="date" required value="${editingLog.date.split('T')[0]}">
+        </div>
+        ` : ''}
+
         <button class="button" type="submit">${editingLogId ? 'Сохранить изменения' : 'Зафиксировать'}</button>
         ${editingLogId ? `<button class="button button_secondary" type="button" id="cancel-edit-btn" style="margin-top: 12px;">Отмена</button>` : ''}
         ${!editingLogId && lastLog ? `<button class="button button_secondary" type="button" id="duplicate-last-btn" style="margin-top: 12px;">Повторить: ${types.find(t => t.id === lastLog.workoutTypeId)?.name} ${lastLog.weight !== undefined ? `${lastLog.weight}кг × ${lastLog.reps}` : `${lastLog.duration} мин`}</button>` : ''}
@@ -1189,9 +1196,20 @@ function bindPageEvents() {
         const logs = storage.getLogs();
         const existingLog = logs.find(l => l.id === editingLogId);
         if (existingLog) {
+          const dateStr = formData.get('date') as string;
+          let newDate = existingLog.date;
+          if (dateStr) {
+            // Preserve time, change date
+            const oldDate = new Date(existingLog.date);
+            const [year, month, day] = dateStr.split('-').map(Number);
+            oldDate.setFullYear(year, month - 1, day);
+            newDate = oldDate.toISOString();
+          }
+
           await storage.updateLog({
             ...existingLog,
-            ...logData
+            ...logData,
+            date: newDate
           });
           editingLogId = null;
         }
