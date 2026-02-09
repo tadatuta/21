@@ -1678,32 +1678,6 @@ function bindPageEvents() {
         }
       });
     }
-
-    // Bind edit/delete buttons again because we just bound Sortable
-    // Oh wait, renderSettingsPage renders the HTML, then bindPageEvents is called.
-    // The previous block bound edit/delete.
-    // Ensure we don't break that.
-
-    document.querySelectorAll('.type-item__edit').forEach(btn => {
-      btn.addEventListener('click', () => {
-        editingTypeId = btn.getAttribute('data-id');
-        render();
-        // Focus input
-        const input = document.getElementById('new-type-name') as HTMLInputElement;
-        input?.focus();
-      });
-    });
-
-    document.querySelectorAll('.type-item__delete').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        if (id && confirm('Удалить этот тип тренировки?')) {
-          if (editingTypeId === id) editingTypeId = null;
-          await storage.deleteWorkoutType(id);
-          render();
-        }
-      });
-    });
   }
 
   if (currentPage === 'stats') {
@@ -2047,8 +2021,7 @@ async function initApp() {
   } else {
     render();
   }
-
-  await storage.init();
+  // Note: storage.init() is called automatically in StorageService constructor
 }
 
 initApp();
