@@ -351,7 +351,7 @@ export class StorageService {
             lastWorkout.updatedAt = new Date().toISOString();
             await db.workouts.put(lastWorkout);
             await this.reloadCache();
-            this.sync().catch(() => { });
+            // Note: sync() is NOT called here - caller (addLog) will sync
             return lastWorkout.id;
         }
 
@@ -367,7 +367,7 @@ export class StorageService {
         };
         await db.workouts.put(newWorkout);
         await this.reloadCache();
-        this.sync().catch(() => { });
+        // Note: sync() is NOT called here - caller (addLog) will sync
         return id;
     }
 
