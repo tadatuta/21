@@ -815,7 +815,7 @@ function renderProfileTabContent(tab: 'ai' | 'public' | 'data'): string {
                 </button>
 
                 <div id="ai-general-result" class="ai-result" style="margin-top: 24px; background: var(--surface-color-alt); padding: 16px; border-radius: 12px; ${aiResults.general ? '' : 'display: none;'}">
-                    <div class="markdown-body" style="white-space: pre-wrap; font-family: inherit;">${aiResults.general || ''}</div>
+                    <div class="markdown-body" style="font-family: inherit;">${aiResults.general || ''}</div>
                 </div>
 
                 <div class="ai-plan-section">
@@ -841,7 +841,7 @@ function renderProfileTabContent(tab: 'ai' | 'public' | 'data'): string {
                     </button>
 
                     <div id="ai-plan-result" class="ai-result" style="margin-top: 12px; background: var(--surface-color-alt); padding: 16px; border-radius: 12px; ${aiResults.plan ? '' : 'display: none;'}">
-                        <div class="markdown-body" style="white-space: pre-wrap; font-family: inherit;">${aiResults.plan || ''}</div>
+                        <div class="markdown-body" style="font-family: inherit;">${aiResults.plan || ''}</div>
                     </div>
                 </div>
             </div>
@@ -1081,7 +1081,7 @@ function bindProfileSettingsEvents() {
     if (container) {
       container.style.display = '';
       const body = container.querySelector('.markdown-body');
-      if (body) body.textContent = result;
+      if (body) body.innerHTML = result;
     }
   };
 
@@ -1805,7 +1805,7 @@ function bindPageEvents() {
       if (container) {
         container.style.display = '';
         const body = container.querySelector('.markdown-body');
-        if (body) body.textContent = result;
+        if (body) body.innerHTML = result;
       }
     };
 
