@@ -528,18 +528,37 @@ export class StorageService {
         }
     }
 
+    private SERVER_URL = 'https://functions.yandexcloud.net/d4ehnqvq3a8fo55t7tj4';
+
     async getPublicProfile(identifier: string): Promise<PublicProfileData | null> {
-        // This is a server call.
         try {
-            // Keep using SERVER_URL from where? It was in file context but not exported.
-            // Let's hardcode or import.
-            const SERVER_URL = 'https://functions.yandexcloud.net/d4ehnqvq3a8fo55t7tj4';
-            const response = await fetch(`${SERVER_URL}?profile=${encodeURIComponent(identifier)}`);
+            const response = await fetch(`${this.SERVER_URL}?profile=${encodeURIComponent(identifier)}`);
             if (!response.ok) return null;
             return await response.json();
         } catch {
             return null;
         }
+    }
+
+    async getAIRecommendation(type: 'general' | 'plan', options?: { period?: 'day' | 'week', allowNewExercises?: boolean }): Promise<string> {
+        const authString = getAuthString();
+        if (!authString) throw new Error('Unauthorized');
+
+        const response = await fetch(`${this.SERVER_URL}?action=ai`, {
+            method: 'POST',
+            headers: {
+                'X-Telegram-Init-Data': authString,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ type, options })
+        });
+
+        if (!response.ok) {
+            throw new Error('AI Generation Failed');
+        }
+
+        const data = await response.json();
+        return data.recommendation;
     }
 
     async exportData(): Promise<AppData> {

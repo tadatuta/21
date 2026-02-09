@@ -43,6 +43,8 @@ let editingTypeId: string | null = null;
 let currentStatsTab: 'overview' | 'progress' = 'overview';
 let currentProfileTab: 'ai' | 'public' | 'data' = 'ai';
 let isFilterEnabled = false;
+let aiResults: { general: string | null; plan: string | null } = { general: null, plan: null };
+let aiLoadingState: 'idle' | 'general' | 'plan' = 'idle';
 
 // Workout UI state
 let isStartingWorkout = false;
@@ -773,42 +775,82 @@ function renderProfileSettingsPage() {
 
         ${currentProfileTab === 'ai' ? `
           <div class="settings-section">
-            <div class="settings-section-title">Личные данные (Приватно)</div>
-            <p class="hint" style="margin-bottom: 12px; font-size: 0.9em;">Эти данные используются только для персонализации советов от AI и не видны другим пользователям.</p>
-            
-            <div class="form-row">
-              <div class="form-group">
-                  <label class="label">Пол</label>
-                  <select class="select" id="profile-gender">
-                      <option value="" ${!profile?.gender ? 'selected' : ''}>Не указано</option>
-                      <option value="male" ${profile?.gender === 'male' ? 'selected' : ''}>Мужской</option>
-                      <option value="female" ${profile?.gender === 'female' ? 'selected' : ''}>Женский</option>
-                  </select>
-              </div>
-              <div class="form-group">
-                  <label class="label">Дата рождения</label>
-                  <input class="input" type="date" id="profile-birthdate" value="${profile?.birthDate || ''}">
-              </div>
+                <div class="settings-section-title">AI Рекомендации</div>
+                
+                <div class="ai-controls" style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="button" id="ai-general-btn" ${aiLoadingState !== 'idle' ? 'disabled' : ''}>
+                        ${aiLoadingState === 'general' ? 'Анализ...' : '✨ Общий анализ'}
+                    </button>
+
+                    <div id="ai-general-result" class="ai-result" style="margin-top: 24px; background: var(--surface-color-alt); padding: 16px; border-radius: 12px; ${aiResults.general ? '' : 'display: none;'}">
+                        <div class="markdown-body" style="white-space: pre-wrap; font-family: inherit;">${aiResults.general || ''}</div>
+                    </div>
+
+                    <div class="ai-plan-section">
+                        <h3 class="workout-subheader" style="margin-bottom: 8px;">План тренировок</h3>
+                        <div class="form-group">
+                            <select class="select" id="ai-plan-period">
+                                <option value="day">На сегодня</option>
+                                <option value="week">На неделю</option>
+                            </select>
+                        </div>
+                          
+                        <div class="toggle-row toggle-row--clean" style="margin-top: 12px;">
+                          <div class="toggle-label">
+                              <span class="toggle-label-text">Рекомендовать новые упражнения</span>
+                          </div>
+                          <label class="toggle-switch">
+                              <input type="checkbox" id="ai-allow-new">
+                              <span class="toggle-slider"></span>
+                          </label>
+                        </div>
+                        <button class="button" id="ai-plan-btn" ${aiLoadingState !== 'idle' ? 'disabled' : ''} style="margin-top: 8px;">
+                            ${aiLoadingState === 'plan' ? 'Генерация...' : '📅 Создать план'}
+                        </button>
+
+                        <div id="ai-plan-result" class="ai-result" style="margin-top: 12px; background: var(--surface-color-alt); padding: 16px; border-radius: 12px; ${aiResults.plan ? '' : 'display: none;'}">
+                            <div class="markdown-body" style="white-space: pre-wrap; font-family: inherit;">${aiResults.plan || ''}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                  <label class="label">Рост (см)</label>
-                  <input class="input" type="number" id="profile-height" placeholder="180" value="${profile?.height || ''}">
-              </div>
-              <div class="form-group">
-                  <label class="label">Вес (кг)</label>
-                  <input class="input" type="number" id="profile-weight" placeholder="75" value="${profile?.weight || ''}">
-              </div>
-            </div>
+            <div class="settings-section">
+                <div class="settings-section-title">Личные данные (Приватно)</div>
+                <p class="hint" style="margin-bottom: 12px; font-size: 0.9em;">Эти данные используются только для персонализации советов от AI и не видны другим пользователям.</p>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                      <label class="label">Пол</label>
+                      <select class="select" id="profile-gender">
+                          <option value="" ${!profile?.gender ? 'selected' : ''}>Не указано</option>
+                          <option value="male" ${profile?.gender === 'male' ? 'selected' : ''}>Мужской</option>
+                          <option value="female" ${profile?.gender === 'female' ? 'selected' : ''}>Женский</option>
+                      </select>
+                  </div>
+                  <div class="form-group">
+                      <label class="label">Дата рождения</label>
+                      <input class="input" type="date" id="profile-birthdate" value="${profile?.birthDate || ''}">
+                  </div>
+                </div>
 
-            <div class="form-group">
-               <label class="label">Дополнительная информация</label>
-               <textarea class="input" id="profile-additional-info" rows="3" placeholder="Укажите травмы, ограничения, цели или любую другую информацию, которая поможет AI давать более точные советы...">${profile?.additionalInfo || ''}</textarea>
-            </div>
-          </div>
+                <div class="form-row">
+                  <div class="form-group">
+                      <label class="label">Рост (см)</label>
+                      <input class="input" type="number" id="profile-height" placeholder="180" value="${profile?.height || ''}">
+                  </div>
+                  <div class="form-group">
+                      <label class="label">Вес (кг)</label>
+                      <input class="input" type="number" id="profile-weight" placeholder="75" value="${profile?.weight || ''}">
+                  </div>
+                </div>
 
-          <button class="button" id="save-profile-btn" style="margin-top: 12px;">Сохранить</button>
+                <div class="form-group">
+                   <label class="label">Дополнительная информация</label>
+                   <textarea class="input" id="profile-additional-info" rows="3" placeholder="Укажите травмы, ограничения, цели или любую другую информацию, которая поможет AI давать более точные советы...">${profile?.additionalInfo || ''}</textarea>
+                </div>
+                <button class="button" id="save-profile-btn" style="margin-top: 12px;">Сохранить</button>
+            </div>
         ` : ''}
 
         ${currentProfileTab === 'data' ? `
@@ -1471,6 +1513,64 @@ function bindPageEvents() {
       showToast('Профиль сохранен');
       render();
     });
+
+    // AI Buttons - update DOM directly to avoid full re-render
+    const aiGeneralBtn = document.getElementById('ai-general-btn') as HTMLButtonElement | null;
+    const aiPlanBtn = document.getElementById('ai-plan-btn') as HTMLButtonElement | null;
+
+    const setAiButtonsLoading = (state: 'idle' | 'general' | 'plan') => {
+      aiLoadingState = state;
+      if (aiGeneralBtn) {
+        aiGeneralBtn.disabled = state !== 'idle';
+        aiGeneralBtn.textContent = state === 'general' ? 'Анализ...' : '✨ Общий анализ';
+      }
+      if (aiPlanBtn) {
+        aiPlanBtn.disabled = state !== 'idle';
+        aiPlanBtn.textContent = state === 'plan' ? 'Генерация...' : '📅 Создать план';
+      }
+    };
+
+    const updateAiResult = (type: 'general' | 'plan', result: string) => {
+      aiResults[type] = result;
+      const containerId = type === 'general' ? 'ai-general-result' : 'ai-plan-result';
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.style.display = '';
+        const body = container.querySelector('.markdown-body');
+        if (body) body.textContent = result;
+      }
+    };
+
+    if (aiGeneralBtn) {
+      aiGeneralBtn.addEventListener('click', async () => {
+        setAiButtonsLoading('general');
+        try {
+          const result = await storage.getAIRecommendation('general');
+          updateAiResult('general', result);
+        } catch (e) {
+          showToast('Ошибка: ' + (e instanceof Error ? e.message : String(e)));
+        } finally {
+          setAiButtonsLoading('idle');
+        }
+      });
+    }
+
+    if (aiPlanBtn) {
+      aiPlanBtn.addEventListener('click', async () => {
+        const period = (document.getElementById('ai-plan-period') as HTMLSelectElement).value as 'day' | 'week';
+        const allowNew = (document.getElementById('ai-allow-new') as HTMLInputElement).checked;
+
+        setAiButtonsLoading('plan');
+        try {
+          const result = await storage.getAIRecommendation('plan', { period, allowNewExercises: allowNew });
+          updateAiResult('plan', result);
+        } catch (e) {
+          showToast('Ошибка: ' + (e instanceof Error ? e.message : String(e)));
+        } finally {
+          setAiButtonsLoading('idle');
+        }
+      });
+    }
 
     const copyBtn = document.getElementById('copy-profile-link');
     copyBtn?.addEventListener('click', () => {
