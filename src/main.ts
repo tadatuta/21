@@ -480,7 +480,7 @@ function bindLogItemEvents() {
       if (id) {
         if (editingLogId === id) editingLogId = null;
         await storage.deleteLog(id);
-        render();
+        updateWeekView();
       }
     });
   });
@@ -956,6 +956,100 @@ function updateProfileTabContent() {
     const tabId = tab.getAttribute('data-tab');
     tab.classList.toggle('active', tabId === currentProfileTab);
   });
+}
+
+// Partial update for stats page - re-renders stats content without full page rebuild
+function updateStatsContent() {
+  const content = document.querySelector('.content');
+  if (!content) return;
+  content.innerHTML = renderStatsPage();
+  bindStatsPageEvents();
+}
+
+// Bind stats page specific events
+function bindStatsPageEvents() {
+  const tabs = document.querySelectorAll('.stats-tab');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabId = tab.getAttribute('data-tab');
+      if (tabId === 'overview' || tabId === 'progress') {
+        currentStatsTab = tabId;
+        updateStatsContent();
+      }
+    });
+  });
+
+  const typeSelect = document.getElementById('stat-type-select');
+  typeSelect?.addEventListener('change', (e) => {
+    selectedStatType = (e.target as HTMLSelectElement).value;
+    updateStatsContent();
+  });
+}
+
+// Partial update for settings page - re-renders type list and form
+function updateSettingsTypeList() {
+  const content = document.querySelector('.content');
+  if (!content) return;
+  content.innerHTML = renderSettingsPage();
+  bindSettingsPageEvents();
+}
+
+// Bind settings page specific events
+function bindSettingsPageEvents() {
+  const form = document.getElementById('add-type-form') as HTMLFormElement;
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('new-type-name') as HTMLInputElement;
+    const category = (document.querySelector('input[name="new-type-category"]:checked') as HTMLInputElement)?.value as 'strength' | 'time' || 'strength';
+    if (input.value) {
+      if (editingTypeId) {
+        await storage.updateWorkoutType(editingTypeId, input.value, category);
+        editingTypeId = null;
+      } else {
+        await storage.addWorkoutType(input.value, category);
+      }
+      updateSettingsTypeList();
+    }
+  });
+
+  const cancelEditBtn = document.getElementById('cancel-edit-type-btn');
+  cancelEditBtn?.addEventListener('click', () => {
+    editingTypeId = null;
+    updateSettingsTypeList();
+  });
+
+  document.querySelectorAll('.type-item__edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingTypeId = btn.getAttribute('data-id');
+      updateSettingsTypeList();
+      const input = document.getElementById('new-type-name') as HTMLInputElement;
+      input?.focus();
+    });
+  });
+
+  document.querySelectorAll('.type-item__delete').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      if (id && confirm('Удалить этот тип тренировки?')) {
+        if (editingTypeId === id) editingTypeId = null;
+        await storage.deleteWorkoutType(id);
+        updateSettingsTypeList();
+      }
+    });
+  });
+
+  // Sortable for type list
+  const typeList = document.getElementById('workout-type-list');
+  if (typeList) {
+    Sortable.create(typeList, {
+      animation: 150,
+      handle: '.drag-handle',
+      onEnd: async () => {
+        const newOrder = Array.from(typeList.children).map(child => child.getAttribute('data-id') || '').filter(Boolean);
+        await storage.updateWorkoutTypeOrder(newOrder);
+      }
+    });
+  }
 }
 
 // Partial update for workout controls - updates only the workout control section
@@ -1681,79 +1775,10 @@ function bindPageEvents() {
   }
 
   if (currentPage === 'settings') {
-    const form = document.getElementById('add-type-form') as HTMLFormElement;
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const input = document.getElementById('new-type-name') as HTMLInputElement;
-      const category = (document.querySelector('input[name="new-type-category"]:checked') as HTMLInputElement)?.value as 'strength' | 'time';
-
-      if (input.value) {
-        if (editingTypeId) {
-          await storage.updateWorkoutType(editingTypeId, input.value, category);
-          editingTypeId = null;
-        } else {
-          await storage.addWorkoutType(input.value, category);
-        }
-        render();
-      }
-    });
-
-    const cancelEditBtn = document.getElementById('cancel-edit-type-btn');
-    cancelEditBtn?.addEventListener('click', () => {
-      editingTypeId = null;
-      render();
-    });
-
-    document.querySelectorAll('.type-item__edit').forEach(btn => {
-      btn.addEventListener('click', () => {
-        editingTypeId = btn.getAttribute('data-id');
-        render();
-        // Focus input
-        const input = document.getElementById('new-type-name') as HTMLInputElement;
-        input?.focus();
-      });
-    });
-
-    document.querySelectorAll('.type-item__delete').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        if (id && confirm('Удалить этот тип тренировки?')) {
-          if (editingTypeId === id) editingTypeId = null;
-          await storage.deleteWorkoutType(id);
-          render();
-        }
-      });
-    });
+    bindSettingsPageEvents();
   }
 
-  if (currentPage === 'settings') {
-    const typeList = document.getElementById('workout-type-list');
-    if (typeList) {
-      Sortable.create(typeList, {
-        animation: 150,
-        handle: '.drag-handle',
-        onEnd: async () => {
-          // Get new order
-          const newOrder = Array.from(typeList.children).map(child => child.getAttribute('data-id') || '').filter(Boolean);
-          await storage.updateWorkoutTypeOrder(newOrder);
-          // No need to re-render immediately as the DOM is already updated by Sortable
-          // But we might want to ensure consistency? 
-          // If we re-render, it might jitter. 
-          // But generic render() pulls from storage, so if we navigate away and back, it should be fine.
-          // Main page select list needs update though?
-          // Navigation to main page triggers render(), so it will fetch fresh sorted list.
-        }
-      });
-    }
-  }
-
-  if (currentPage === 'stats') {
-    const select = document.getElementById('stat-type-select') as HTMLSelectElement;
-    select?.addEventListener('change', () => {
-      selectedStatType = select.value;
-      render();
-    });
-  }
+  // stats type select handled in bindPageEvents stats block below
 
   if (currentPage === 'profile-settings') {
     // Tab switching - use partial update instead of full render
@@ -1942,22 +1967,7 @@ function bindPageEvents() {
   }
 
   if (currentPage === 'stats') {
-    const tabs = document.querySelectorAll('.stats-tab');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', () => {
-        const tabId = tab.getAttribute('data-tab');
-        if (tabId === 'overview' || tabId === 'progress') {
-          currentStatsTab = tabId;
-          render();
-        }
-      });
-    });
-
-    const typeSelect = document.getElementById('stat-type-select');
-    typeSelect?.addEventListener('change', (e) => {
-      selectedStatType = (e.target as HTMLSelectElement).value;
-      render();
-    });
+    bindStatsPageEvents();
   }
 
   if (currentPage === 'public-profile') {
@@ -2012,7 +2022,24 @@ function updateSyncStatus(status: SyncStatus) {
   }
 }
 
-storage.onUpdate(() => render());
+storage.onUpdate(() => {
+  switch (currentPage) {
+    case 'main':
+      updateWeekView();
+      break;
+    case 'profile-settings':
+      updateProfileTabContent();
+      break;
+    case 'settings':
+      updateSettingsTypeList();
+      break;
+    case 'stats':
+      updateStatsContent();
+      break;
+    default:
+      render();
+  }
+});
 storage.onSyncStatusChange(updateSyncStatus);
 
 async function initApp() {
