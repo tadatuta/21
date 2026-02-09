@@ -1,4 +1,6 @@
 import './telegram-mock';
+import './components/typeahead/typeahead.css';
+import { renderTypeahead, bindTypeahead, registerTypeaheadItems, getTypeaheadValue } from './components/typeahead/Typeahead';
 import './styles/base.css';
 import './styles/components.css';
 import './styles/profile.css';
@@ -346,9 +348,18 @@ function renderMainPage() {
       <form class="workout-form" id="log-form">
         <div class="form-group">
           <label class="label">Тип тренировки</label>
-          <select class="select" name="typeId" id="workout-type-select" required>
-            ${types.map(t => `<option value="${t.id}" ${(editingLogId ? (editingLog && t.id === editingLog.workoutTypeId) : (t.id === lastTypeId)) ? 'selected' : ''}>${t.name}</option>`).join('')}
-          </select>
+          ${types.length > 10
+      ? renderTypeahead({
+        items: types.map(t => ({ id: t.id, name: t.name })),
+        selectedId: editingLogId ? editingLog?.workoutTypeId : lastTypeId,
+        name: 'typeId',
+        inputId: 'workout-type-select',
+        placeholder: 'Начните вводить название...'
+      })
+      : `<select class="select" name="typeId" id="workout-type-select" required>
+                ${types.map(t => `<option value="${t.id}" ${(editingLogId ? (editingLog && t.id === editingLog.workoutTypeId) : (t.id === lastTypeId)) ? 'selected' : ''}>${t.name}</option>`).join('')}
+              </select>`
+    }
         </div>
         
         <div id="strength-inputs" style="display: none;">
@@ -427,7 +438,7 @@ function renderLogsList() {
 
   // Apply filter by selected exercise type if enabled
   if (isFilterEnabled) {
-    const selectedTypeId = (document.querySelector('select[name="typeId"]') as HTMLSelectElement)?.value;
+    const selectedTypeId = getTypeaheadValue();
     if (selectedTypeId) {
       weekLogs = weekLogs.filter(log => log.workoutTypeId === selectedTypeId);
     }
@@ -1480,9 +1491,8 @@ function bindPageEvents() {
 
     // Helper to update visibility
     const updateFormVisibility = () => {
-      const typeSelect = document.getElementById('workout-type-select') as HTMLSelectElement;
       const types = storage.getWorkoutTypes();
-      const selectedId = typeSelect?.value;
+      const selectedId = getTypeaheadValue(form);
       const selectedType = types.find(t => t.id === selectedId);
 
       const strengthInputs = document.getElementById('strength-inputs');
@@ -1508,7 +1518,14 @@ function bindPageEvents() {
     // Initial check
     updateFormVisibility();
 
-    // Listen for changes
+    // Bind typeahead if present
+    const typeaheadEl = form?.querySelector('[data-typeahead]');
+    if (typeaheadEl) {
+      registerTypeaheadItems(form, storage.getWorkoutTypes().map(t => ({ id: t.id, name: t.name })));
+      bindTypeahead(form);
+    }
+
+    // Listen for changes (works for both <select> and typeahead hidden input)
     const typeSelect = document.getElementById('workout-type-select');
     typeSelect?.addEventListener('change', updateFormVisibility);
 
