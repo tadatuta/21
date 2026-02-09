@@ -659,7 +659,24 @@ function renderProfileTabContent(tab: 'ai' | 'public' | 'data'): string {
   const profileUrl = identifier ? getProfileLink(identifier) : '';
 
   if (tab === 'public') {
-    return `
+    return `${profile?.friends && profile.friends.length > 0 ? `
+      <div class="settings-section">
+          <div class="settings-section-title">Друзья (${profile.friends.length})</div>
+          <div class="friends-list">
+              ${profile.friends.map(f => `
+                  <a href="${getProfileLink(f.identifier)}" class="friend-item" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; text-decoration: none; color: inherit;">
+                      <div class="friend-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color-alt); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                          ${f.photoUrl ? `<img src="${f.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : f.displayName.charAt(0).toUpperCase()}
+                      </div>
+                      <div class="friend-info" style="flex-grow: 1;">
+                          <div class="friend-name" style="font-weight: 500;">${f.displayName}</div>
+                      </div>
+                      <div class="friend-arrow">›</div>
+                  </a>
+              `).join('')}
+          </div>
+      </div>
+      ` : ''}
       <div class="settings-section">
         <div class="settings-section-title">Видимость</div>
         <div class="toggle-row">
@@ -740,25 +757,6 @@ function renderProfileTabContent(tab: 'ai' | 'public' | 'data'): string {
         return renderProfileStats(stats, uniqueDaysSet);
       })()}
       </div>
-
-      ${profile?.friends && profile.friends.length > 0 ? `
-      <div class="settings-section">
-          <div class="settings-section-title">Друзья (${profile.friends.length})</div>
-          <div class="friends-list">
-              ${profile.friends.map(f => `
-                  <a href="${getProfileLink(f.identifier)}" class="friend-item" style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; text-decoration: none; color: inherit;">
-                      <div class="friend-avatar" style="width: 40px; height: 40px; border-radius: 50%; background: var(--surface-color-alt); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                          ${f.photoUrl ? `<img src="${f.photoUrl}" style="width: 100%; height: 100%; object-fit: cover;">` : f.displayName.charAt(0).toUpperCase()}
-                      </div>
-                      <div class="friend-info" style="flex-grow: 1;">
-                          <div class="friend-name" style="font-weight: 500;">${f.displayName}</div>
-                      </div>
-                      <div class="friend-arrow">›</div>
-                  </a>
-              `).join('')}
-          </div>
-      </div>
-      ` : ''}
 
       <button class="button" id="save-profile-btn" style="margin-top: 12px;">Сохранить</button>
     `;
