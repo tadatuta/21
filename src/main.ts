@@ -597,6 +597,48 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
       });
     });
 
+    // Render orphan logs (without workoutId)
+    const orphanLogs = dayLogs.filter(l => !l.workoutId);
+    if (orphanLogs.length > 0) {
+      const exerciseGroups: Map<string, WorkoutSet[]> = new Map();
+      orphanLogs.forEach(log => {
+        if (!exerciseGroups.has(log.workoutTypeId)) {
+          exerciseGroups.set(log.workoutTypeId, []);
+        }
+        exerciseGroups.get(log.workoutTypeId)!.push(log);
+      });
+
+      exerciseGroups.forEach((sets, typeId) => {
+        const type = types.find(t => t.id === typeId);
+        html += `
+            <div class="log-exercise">
+              <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
+              <div class="log-exercise__sets">
+                ${sets.map(set => `
+                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''} ${set.id === lastAddedLogId ? 'log-set_new' : ''}">
+                    <div class="log-set__info">
+                      ${set.weight !== undefined && set.reps !== undefined ? `
+                        <span class="log-set__weight">${set.weight} кг</span>
+                        <span class="log-set__times">×</span>
+                        <span class="log-set__reps">${set.reps}</span>
+                      ` : `
+                        <span class="log-set__reps">⏱ ${set.duration} мин</span>
+                      `}
+                    </div>
+                    ${isEditable ? `
+                    <div class="log-set__actions">
+                      <button class="log-set__edit" data-id="${set.id}">✏️</button>
+                      <button class="log-set__delete" data-id="${set.id}">×</button>
+                    </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+      });
+    }
+
     html += `</div>`;
   });
 
