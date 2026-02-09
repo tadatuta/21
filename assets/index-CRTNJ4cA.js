@@ -383,14 +383,13 @@ var Qa=Object.defineProperty;var Ja=(o,n,i)=>n in o?Qa(o,n,{enumerable:!0,config
                     <div class="ai-plan-section">
                         <h3 class="workout-subheader" style="margin-bottom: 8px;">План тренировок</h3>
                         <div class="form-group">
-                            <label class="label">Период</label>
                             <select class="select" id="ai-plan-period">
                                 <option value="day">На сегодня</option>
                                 <option value="week">На неделю</option>
                             </select>
                         </div>
                           
-                        <div class="toggle-row" style="margin-top: 24px;">
+                        <div class="toggle-row toggle-row--clean" style="margin-top: 12px;">
                           <div class="toggle-label">
                               <span class="toggle-label-text">Рекомендовать новые упражнения</span>
                           </div>
@@ -408,42 +407,44 @@ var Qa=Object.defineProperty;var Ja=(o,n,i)=>n in o?Qa(o,n,{enumerable:!0,config
                 <div id="ai-result-container" class="ai-result" style="margin-top: 24px; background: var(--surface-color-alt); padding: 16px; border-radius: 12px; ${ji?"":"display: none;"}">
                     <div class="markdown-body" style="white-space: pre-wrap; font-family: inherit;">${ji||""}</div>
                 </div>
-
-            <div class="settings-section-title">Личные данные (Приватно)</div>
-            <p class="hint" style="margin-bottom: 12px; font-size: 0.9em;">Эти данные используются только для персонализации советов от AI и не видны другим пользователям.</p>
-            
-            <div class="form-row">
-              <div class="form-group">
-                  <label class="label">Пол</label>
-                  <select class="select" id="profile-gender">
-                      <option value="" ${o!=null&&o.gender?"":"selected"}>Не указано</option>
-                      <option value="male" ${(o==null?void 0:o.gender)==="male"?"selected":""}>Мужской</option>
-                      <option value="female" ${(o==null?void 0:o.gender)==="female"?"selected":""}>Женский</option>
-                  </select>
-              </div>
-              <div class="form-group">
-                  <label class="label">Дата рождения</label>
-                  <input class="input" type="date" id="profile-birthdate" value="${(o==null?void 0:o.birthDate)||""}">
-              </div>
             </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                  <label class="label">Рост (см)</label>
-                  <input class="input" type="number" id="profile-height" placeholder="180" value="${(o==null?void 0:o.height)||""}">
-              </div>
-              <div class="form-group">
-                  <label class="label">Вес (кг)</label>
-                  <input class="input" type="number" id="profile-weight" placeholder="75" value="${(o==null?void 0:o.weight)||""}">
-              </div>
-            </div>
+            <div class="settings-section">
+                <div class="settings-section-title">Личные данные (Приватно)</div>
+                <p class="hint" style="margin-bottom: 12px; font-size: 0.9em;">Эти данные используются только для персонализации советов от AI и не видны другим пользователям.</p>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                      <label class="label">Пол</label>
+                      <select class="select" id="profile-gender">
+                          <option value="" ${o!=null&&o.gender?"":"selected"}>Не указано</option>
+                          <option value="male" ${(o==null?void 0:o.gender)==="male"?"selected":""}>Мужской</option>
+                          <option value="female" ${(o==null?void 0:o.gender)==="female"?"selected":""}>Женский</option>
+                      </select>
+                  </div>
+                  <div class="form-group">
+                      <label class="label">Дата рождения</label>
+                      <input class="input" type="date" id="profile-birthdate" value="${(o==null?void 0:o.birthDate)||""}">
+                  </div>
+                </div>
 
-            <div class="form-group">
-               <label class="label">Дополнительная информация</label>
-               <textarea class="input" id="profile-additional-info" rows="3" placeholder="Укажите травмы, ограничения, цели или любую другую информацию, которая поможет AI давать более точные советы...">${(o==null?void 0:o.additionalInfo)||""}</textarea>
+                <div class="form-row">
+                  <div class="form-group">
+                      <label class="label">Рост (см)</label>
+                      <input class="input" type="number" id="profile-height" placeholder="180" value="${(o==null?void 0:o.height)||""}">
+                  </div>
+                  <div class="form-group">
+                      <label class="label">Вес (кг)</label>
+                      <input class="input" type="number" id="profile-weight" placeholder="75" value="${(o==null?void 0:o.weight)||""}">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                   <label class="label">Дополнительная информация</label>
+                   <textarea class="input" id="profile-additional-info" rows="3" placeholder="Укажите травмы, ограничения, цели или любую другую информацию, которая поможет AI давать более точные советы...">${(o==null?void 0:o.additionalInfo)||""}</textarea>
+                </div>
+                <button class="button" id="save-profile-btn" style="margin-top: 12px;">Сохранить</button>
             </div>
-            <button class="button" id="save-profile-btn" style="margin-top: 12px;">Сохранить</button>
-          </div>
         `:""}
 
         ${Ue==="data"?`
