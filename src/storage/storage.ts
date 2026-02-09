@@ -23,6 +23,7 @@ export type SyncStatus = 'idle' | 'saving' | 'success' | 'error';
 export class StorageService {
     private onUpdateCallback?: () => void;
     private onSyncStatusChangeCallback?: (status: SyncStatus) => void;
+    private onUnauthorizedCallback?: () => void;
     private status: SyncStatus = 'idle';
 
     constructor() {
@@ -96,6 +97,10 @@ export class StorageService {
         this.onSyncStatusChangeCallback = callback;
     }
 
+    onUnauthorized(callback: () => void) {
+        this.onUnauthorizedCallback = callback;
+    }
+
     private setStatus(status: SyncStatus) {
         this.status = status;
         this.onSyncStatusChangeCallback?.(status);
@@ -132,13 +137,16 @@ export class StorageService {
             if (msg.includes('unauthorized')) {
                 // Check if we've already tried and failed
                 if (skipTmaAuth) {
-                    // Already failed before, don't reload again
+                    // Already failed before, trigger unauthorized callback and don't reload
                     this.setStatus('error');
+                    this.onUnauthorizedCallback?.();
                     return;
                 }
-                // First failure - ALWAYS set flag to skip TMA auth on next load
+                // First failure - set flag to skip TMA auth, clear auth data, and trigger callback
                 localStorage.setItem('skip_tma_auth', 'true');
                 clearAuthData();
+                // Trigger callback to show login screen immediately
+                this.onUnauthorizedCallback?.();
                 location.reload();
                 return;
             }

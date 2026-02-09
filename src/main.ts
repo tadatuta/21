@@ -130,6 +130,16 @@ storage.onSyncStatusChange((status) => {
   updateSyncStatusUI();
 });
 
+// Handle unauthorized errors - show login screen immediately
+storage.onUnauthorized(() => {
+  const app = document.getElementById('app');
+  if (app) {
+    renderLogin(app, () => {
+      location.reload();
+    });
+  }
+});
+
 function updateSyncStatusUI() {
   const statusEl = document.getElementById('sync-status');
   if (!statusEl) return;
