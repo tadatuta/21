@@ -951,6 +951,24 @@ function updateProfileTabContent() {
     container.innerHTML = renderProfileTabContent(currentProfileTab);
     bindProfileSettingsEvents();
   }
+  // Update profile header
+  const profile = storage.getProfile();
+  const displayName = profile?.displayName || WEBAPP?.initDataUnsafe?.user?.first_name || '';
+  const isPublic = profile?.isPublic ?? false;
+
+  const nameEl = document.querySelector('.profile-page .profile-name');
+  if (nameEl) nameEl.textContent = displayName;
+
+  const subtitleEl = document.querySelector('.profile-page .profile-subtitle');
+  if (subtitleEl) subtitleEl.textContent = isPublic ? 'Публичный профиль' : 'Приватный профиль';
+
+  const avatarEl = document.querySelector('.profile-page .profile-avatar');
+  if (avatarEl) {
+    avatarEl.innerHTML = profile?.photoUrl
+      ? `<img src="${profile.photoUrl}" alt="${displayName}" class="profile-avatar-img">`
+      : displayName.charAt(0).toUpperCase();
+  }
+
   // Update active tab state
   document.querySelectorAll('.profile-tab').forEach(tab => {
     const tabId = tab.getAttribute('data-tab');
@@ -2025,7 +2043,7 @@ function updateSyncStatus(status: SyncStatus) {
 storage.onUpdate(() => {
   switch (currentPage) {
     case 'main':
-      updateWeekView();
+      render();
       break;
     case 'profile-settings':
       updateProfileTabContent();
