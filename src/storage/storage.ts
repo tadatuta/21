@@ -319,6 +319,19 @@ export class StorageService {
         }
     }
 
+    async updateWorkout(id: string, updates: { name?: string; startTime?: string; endTime?: string }): Promise<void> {
+        const workout = await db.workouts.get(id);
+        if (workout) {
+            if (updates.name !== undefined) workout.name = updates.name || undefined;
+            if (updates.startTime) workout.startTime = updates.startTime;
+            if (updates.endTime) workout.endTime = updates.endTime;
+            workout.updatedAt = new Date().toISOString();
+            await db.workouts.put(workout);
+            await this.reloadCache();
+            this.sync().catch(() => { });
+        }
+    }
+
     getWorkoutDuration(workout: WorkoutSession): number {
         const start = new Date(workout.startTime).getTime();
         const end = workout.endTime ? new Date(workout.endTime).getTime() : Date.now();

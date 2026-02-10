@@ -6,7 +6,7 @@ import './styles/components.css';
 import './styles/profile.css';
 import './components/navigation/navigation.css';
 import { storage, SyncStatus } from './storage/storage';
-import { WorkoutSet, PublicProfileData, WorkoutType } from './types';
+import { WorkoutSet, WorkoutSession, PublicProfileData, WorkoutType } from './types';
 import './styles/stats.css';
 import { getOneRepMaxByDate, getWorkoutDates, getDurationStats } from './utils/statistics';
 import { renderHeatmap } from './components/stats/Heatmap';
@@ -50,6 +50,7 @@ let aiLoadingState: 'idle' | 'general' | 'plan' = 'idle';
 
 // Workout UI state
 let isStartingWorkout = false;
+let editingWorkoutId: string | null = null;
 
 function navigate(page: Page) {
   currentPage = page;
@@ -501,6 +502,78 @@ function bindLogItemEvents() {
       }
     });
   });
+
+  // Workout edit buttons
+  document.querySelectorAll('.workout-header__edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingWorkoutId = btn.getAttribute('data-workout-id');
+      updateWeekView();
+    });
+  });
+
+  // Workout edit form
+  const editForm = document.getElementById('workout-edit-form') as HTMLFormElement;
+  if (editForm) {
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!editingWorkoutId) return;
+      const formData = new FormData(editForm);
+      const name = (formData.get('workoutName') as string) || '';
+      const startTimeLocal = formData.get('startTime') as string;
+      const endTimeLocal = formData.get('endTime') as string;
+
+      const updates: { name?: string; startTime?: string; endTime?: string } = { name };
+      if (startTimeLocal) updates.startTime = new Date(startTimeLocal).toISOString();
+      if (endTimeLocal) updates.endTime = new Date(endTimeLocal).toISOString();
+
+      await storage.updateWorkout(editingWorkoutId, updates);
+      editingWorkoutId = null;
+      updateWeekView();
+      showToast('Тренировка обновлена');
+    });
+
+    const cancelBtn = document.getElementById('cancel-edit-workout-btn');
+    cancelBtn?.addEventListener('click', () => {
+      editingWorkoutId = null;
+      updateWeekView();
+    });
+  }
+}
+
+function toLocalDatetimeValue(isoString: string): string {
+  const d = new Date(isoString);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function renderWorkoutEditForm(workout: WorkoutSession): string {
+  const startVal = toLocalDatetimeValue(workout.startTime);
+  const endVal = workout.endTime ? toLocalDatetimeValue(workout.endTime) : '';
+
+  return `
+    <div class="workout-edit-form card">
+      <form id="workout-edit-form">
+        <div class="form-group">
+          <label class="label">Название</label>
+          <input class="input" type="text" name="workoutName" placeholder="Название (опционально)" value="${workout.name || ''}">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="label">Начало</label>
+            <input class="input" type="datetime-local" name="startTime" value="${startVal}" required>
+          </div>
+          <div class="form-group">
+            <label class="label">Конец</label>
+            <input class="input" type="datetime-local" name="endTime" value="${endVal}">
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button class="button" type="submit">Сохранить</button>
+          <button class="button button_secondary" type="button" id="cancel-edit-workout-btn">Отмена</button>
+        </div>
+      </form>
+    </div>
+  `;
 }
 
 function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditable: boolean) {
@@ -545,27 +618,39 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
     html += `<div class="log-day">`;
     html += `<div class="log-day__header">
       <span>${dateLabel}${showNameInHeader ? ` • ${singleWorkout.name}` : ''}${singleWorkout ? ` • ${singleWorkoutDuration} мин` : ''}</span>
-      ${isEditable ? `<button class="share-btn" data-date="${dayDateStr}" title="Поделиться">📤</button>` : ''}
+      <div class="log-day__header-actions">
+        ${isEditable && singleWorkout ? `<button class="workout-header__edit" data-workout-id="${singleWorkout.id}" title="Редактировать тренировку">✏️</button>` : ''}
+        ${isEditable ? `<button class="share-btn" data-date="${dayDateStr}" title="Поделиться">📤</button>` : ''}
+      </div>
     </div>`;
+
+    // Inline edit form for single workout
+    if (isEditable && singleWorkout && editingWorkoutId === singleWorkout.id) {
+      html += renderWorkoutEditForm(singleWorkout);
+    }
 
     // Render each workout group
     sortedWorkoutIds.forEach(workoutId => {
       const workout = workouts.find(w => w.id === workoutId);
       const workoutLogs = dayLogs.filter(l => l.workoutId === workoutId);
 
-      // Subheader if multiple workouts OR single workout didn't put name in header (e.g. it has start/end time we might want to show?)
-      // Requirements: "Если в этот день было несколько тренировок, выводим их названия в отдельных подзаголовках."
-      // Also implicit workouts might not have names.
-      // Let's hide subheader if it's the ONLY workout and we either showed name or it has no name.
       const hideSubheader = sortedWorkoutIds.length === 1 && (showNameInHeader || !workout?.name);
 
       if (!hideSubheader) {
         const duration = workout ? Math.round(storage.getWorkoutDuration(workout)) : 0;
 
         html += `<h3 class="workout-subheader">
-                ${workout?.name || 'Тренировка'} 
-                <span class="workout-subheader__time">${duration} мин</span>
+                <span>${workout?.name || 'Тренировка'}</span>
+                <div class="workout-subheader__actions">
+                  <span class="workout-subheader__time">${duration} мин</span>
+                  ${isEditable && workout ? `<button class="workout-header__edit" data-workout-id="${workout.id}" title="Редактировать тренировку">✏️</button>` : ''}
+                </div>
             </h3>`;
+
+        // Inline edit form for multi-workout subheader
+        if (isEditable && workout && editingWorkoutId === workout.id) {
+          html += renderWorkoutEditForm(workout);
+        }
       }
 
       // Group by exercise within workout
@@ -1744,6 +1829,14 @@ function bindPageEvents() {
         if (dateStr) {
           shareWorkout(dateStr);
         }
+      });
+    });
+
+    // Workout edit buttons
+    document.querySelectorAll('.workout-header__edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingWorkoutId = btn.getAttribute('data-workout-id');
+        updateWeekView();
       });
     });
 
