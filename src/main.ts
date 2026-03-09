@@ -45,7 +45,8 @@ let editingTypeId: string | null = null;
 let currentStatsTab: 'overview' | 'progress' = 'overview';
 let currentProfileTab: 'ai' | 'public' | 'data' = 'ai';
 let isFilterEnabled = false;
-const aiResults: { general: string | null; plan: string | null } = { general: null, plan: null };
+const savedAiResults = localStorage.getItem('gym_ai_results');
+const aiResults: { general: string | null; plan: string | null } = savedAiResults ? JSON.parse(savedAiResults) : { general: null, plan: null };
 let aiLoadingState: 'idle' | 'general' | 'plan' = 'idle';
 
 // Workout UI state
@@ -1354,6 +1355,7 @@ function bindProfileSettingsEvents() {
 
   const updateAiResult = (type: 'general' | 'plan', result: string) => {
     aiResults[type] = result;
+    localStorage.setItem('gym_ai_results', JSON.stringify(aiResults));
     const containerId = type === 'general' ? 'ai-general-result' : 'ai-plan-result';
     const container = document.getElementById(containerId);
     if (container) {
@@ -2041,6 +2043,7 @@ function bindPageEvents() {
 
     const updateAiResult = (type: 'general' | 'plan', result: string) => {
       aiResults[type] = result;
+      localStorage.setItem('gym_ai_results', JSON.stringify(aiResults));
       const containerId = type === 'general' ? 'ai-general-result' : 'ai-plan-result';
       const container = document.getElementById(containerId);
       if (container) {
