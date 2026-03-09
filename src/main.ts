@@ -453,7 +453,6 @@ function renderLogsList() {
   return generateLogsListHtml(weekLogs, types, true);
 }
 
-// Partial update for week navigation - updates only the header label and logs list
 function updateWeekView() {
   const logsListEl = document.getElementById('logs-list');
   const weekLabelEl = document.querySelector('#week-label-container .subtitle');
@@ -1892,43 +1891,7 @@ function bindPageEvents() {
       render();
     });
 
-    document.querySelectorAll('.log-set__delete').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        if (id) {
-          if (editingLogId === id) editingLogId = null;
-          await storage.deleteLog(id);
-          // Use partial update instead of full render
-          updateWeekView();
-        }
-      });
-    });
-
-    document.querySelectorAll('.log-set__edit').forEach(btn => {
-      btn.addEventListener('click', () => {
-        editingLogId = btn.getAttribute('data-id');
-        render();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
-    });
-
-    // Share button events
-    document.querySelectorAll('.share-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const dateStr = btn.getAttribute('data-date');
-        if (dateStr) {
-          shareWorkout(dateStr);
-        }
-      });
-    });
-
-    // Workout edit buttons
-    document.querySelectorAll('.workout-header__edit').forEach(btn => {
-      btn.addEventListener('click', () => {
-        editingWorkoutId = btn.getAttribute('data-workout-id');
-        updateWeekView();
-      });
-    });
+    bindLogItemEvents();
 
     const prevWeekBtn = document.getElementById('prev-week-btn');
     prevWeekBtn?.addEventListener('click', () => {
