@@ -1452,7 +1452,7 @@ function renderPublicProfilePage() {
           ${profile.photoUrl ? `<img src="${profile.photoUrl}" alt="${profile.displayName}" class="profile-avatar-img">` : profile.displayName.charAt(0).toUpperCase()}
         </div>
         <div class="profile-name">${profile.displayName}</div>
-        <div class="profile-subtitle">@${profile.identifier}</div>
+        ${profile.identifier.startsWith('id_') ? '' : `<div class="profile-subtitle">@${profile.identifier}</div>`}
         ${(function () {
       const myProfile = storage.getProfile();
       const isMe = myProfile && (myProfile.telegramUsername === profile.identifier || `id_${myProfile.telegramUserId}` === profile.identifier);

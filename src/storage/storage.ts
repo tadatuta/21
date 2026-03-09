@@ -455,16 +455,11 @@ export class StorageService {
     }
 
     getProfileIdentifier(): string {
-        // Logic to get identifier from profile or webapp
-        // This logic was relying on current cache.
         const profile = this.cache.profile;
         if (profile?.telegramUsername) {
             return profile.telegramUsername;
         }
-        if (profile?.telegramUserId) {
-            return `id_${profile.telegramUserId}`;
-        }
-        const userId = WEBAPP?.initDataUnsafe?.user?.id;
+        const userId = profile?.telegramUserId || WEBAPP?.initDataUnsafe?.user?.id;
         return userId ? `id_${userId}` : '';
     }
 
@@ -491,6 +486,13 @@ export class StorageService {
         } else {
             if (user?.photo_url) {
                 profile.photoUrl = user.photo_url;
+            }
+            if (userId && !profile.telegramUserId) {
+                profile.telegramUserId = userId;
+            }
+            // Update username if it changed
+            if (user?.username !== undefined && profile.telegramUsername !== user.username) {
+                profile.telegramUsername = user.username;
             }
         }
 
