@@ -542,6 +542,72 @@ function bindLogItemEvents() {
       updateWeekView();
     });
   }
+
+  document.querySelectorAll('.log-exercise__name').forEach(el => {
+    el.addEventListener('click', () => {
+      if (editingLogId) return;
+      const typeId = el.getAttribute('data-type-id');
+      if (typeId) {
+        setWorkoutTypeInForm(typeId);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    });
+  });
+
+  document.querySelectorAll('.log-set').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if ((e.target as HTMLElement).closest('.log-set__actions')) return;
+      if (editingLogId) return;
+
+      const logId = el.getAttribute('data-id');
+      if (logId) {
+        const log = storage.getLogs().find(l => l.id === logId);
+        if (log) {
+          setWorkoutTypeInForm(log.workoutTypeId);
+
+          if (log.weight !== undefined) {
+            const weightInput = document.querySelector('input[name="weight"]') as HTMLInputElement;
+            if (weightInput) weightInput.value = String(log.weight);
+          }
+          if (log.reps !== undefined) {
+            const repsInput = document.querySelector('input[name="reps"]') as HTMLInputElement;
+            if (repsInput) repsInput.value = String(log.reps);
+          }
+          if (log.duration !== undefined) {
+            const hInput = document.querySelector('input[name="duration_hours"]') as HTMLInputElement;
+            const mInput = document.querySelector('input[name="duration_minutes"]') as HTMLInputElement;
+            if (hInput) hInput.value = String(Math.floor(log.duration / 60));
+            if (mInput) mInput.value = String(log.duration % 60);
+          }
+          if (log.durationSeconds !== undefined) {
+            const sInput = document.querySelector('input[name="duration_seconds"]') as HTMLInputElement;
+            if (sInput) sInput.value = String(log.durationSeconds);
+          }
+
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
+    });
+  });
+}
+
+function setWorkoutTypeInForm(typeId: string) {
+  const types = storage.getWorkoutTypes();
+  const type = types.find(t => t.id === typeId);
+  if (!type) return;
+
+  const selectOrHidden = document.getElementById('workout-type-select') as HTMLInputElement | HTMLSelectElement;
+  if (selectOrHidden) {
+    selectOrHidden.value = typeId;
+    if (selectOrHidden.tagName === 'INPUT' && selectOrHidden.type === 'hidden') {
+      const wrapper = selectOrHidden.closest('[data-typeahead]');
+      if (wrapper) {
+        const visibleInput = wrapper.querySelector('[data-typeahead-input]') as HTMLInputElement;
+        if (visibleInput) visibleInput.value = type.name;
+      }
+    }
+    selectOrHidden.dispatchEvent(new Event('change', { bubbles: true }));
+  }
 }
 
 function toLocalDatetimeValue(isoString: string): string {
@@ -670,10 +736,10 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
         const type = types.find(t => t.id === typeId);
         html += `
             <div class="log-exercise">
-              <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
+              <div class="log-exercise__name" data-type-id="${type?.id || ''}" style="cursor: pointer;">${type?.name || 'Удалено'}</div>
               <div class="log-exercise__sets">
                 ${sets.map(set => `
-                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''} ${set.id === lastAddedLogId ? 'log-set_new' : ''}">
+                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''} ${set.id === lastAddedLogId ? 'log-set_new' : ''}" data-id="${set.id}" style="cursor: pointer;">
                     <div class="log-set__info">
                       ${set.weight !== undefined && set.reps !== undefined ? `
                         <span class="log-set__weight">${set.weight} кг</span>
@@ -712,10 +778,10 @@ function generateLogsListHtml(logs: WorkoutSet[], types: WorkoutType[], isEditab
         const type = types.find(t => t.id === typeId);
         html += `
             <div class="log-exercise">
-              <div class="log-exercise__name">${type?.name || 'Удалено'}</div>
+              <div class="log-exercise__name" data-type-id="${type?.id || ''}" style="cursor: pointer;">${type?.name || 'Удалено'}</div>
               <div class="log-exercise__sets">
                 ${sets.map(set => `
-                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''} ${set.id === lastAddedLogId ? 'log-set_new' : ''}">
+                  <div class="log-set ${set.id === editingLogId ? 'log-set_active-edit' : ''} ${set.id === lastAddedLogId ? 'log-set_new' : ''}" data-id="${set.id}" style="cursor: pointer;">
                     <div class="log-set__info">
                       ${set.weight !== undefined && set.reps !== undefined ? `
                         <span class="log-set__weight">${set.weight} кг</span>
