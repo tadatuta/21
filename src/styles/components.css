@@ -27,6 +27,7 @@
     grid-template-columns: repeat(var(--columns, 2), 1fr);
     gap: var(--spacing-m);
 }
+
 .form-row:has(> :nth-child(3)) {
     --columns: 3;
 }
@@ -433,6 +434,10 @@
     background-color: var(--color-secondary-bg);
     border-radius: var(--border-radius);
     border: 1px solid var(--color-link);
+}
+
+.workout-edit-form .form-row {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .workout-edit-form .form-group {
