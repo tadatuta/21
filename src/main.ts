@@ -45,7 +45,7 @@ let editingTypeId: string | null = null;
 let currentStatsTab: 'overview' | 'progress' = 'overview';
 let currentProfileTab: 'ai' | 'public' | 'data' = 'ai';
 let isFilterEnabled = false;
-let aiResults: { general: string | null; plan: string | null } = { general: null, plan: null };
+const aiResults: { general: string | null; plan: string | null } = { general: null, plan: null };
 let aiLoadingState: 'idle' | 'general' | 'plan' = 'idle';
 
 // Workout UI state
@@ -397,8 +397,8 @@ function renderMainPage() {
 
         ${editingLogId && editingLog ? `
         <div class="form-group">
-          <label class="label">Дата</label>
-          <input class="input" type="date" name="date" required value="${editingLog.date.split('T')[0]}">
+          <label class="label">Дата и время</label>
+          <input class="input" type="datetime-local" name="date" required value="${toLocalDatetimeValue(editingLog.date)}">
         </div>
         ` : ''}
 
@@ -1765,11 +1765,20 @@ function bindPageEvents() {
           const dateStr = formData.get('date') as string;
           let newDate = existingLog.date;
           if (dateStr) {
-            // Preserve time, change date
-            const oldDate = new Date(existingLog.date);
-            const [year, month, day] = dateStr.split('-').map(Number);
-            oldDate.setFullYear(year, month - 1, day);
-            newDate = oldDate.toISOString();
+            if (dateStr.includes('T')) {
+              // datetime-local input provides 'YYYY-MM-DDTHH:mm'
+              const localDate = new Date(dateStr);
+              // preserve seconds and ms from original date
+              const oldDate = new Date(existingLog.date);
+              localDate.setSeconds(oldDate.getSeconds(), oldDate.getMilliseconds());
+              newDate = localDate.toISOString();
+            } else {
+              // fallback for simple date input
+              const oldDate = new Date(existingLog.date);
+              const [year, month, day] = dateStr.split('-').map(Number);
+              oldDate.setFullYear(year, month - 1, day);
+              newDate = oldDate.toISOString();
+            }
           }
 
           await storage.updateLog({
