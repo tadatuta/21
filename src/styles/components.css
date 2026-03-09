@@ -24,8 +24,11 @@
 
 .form-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(var(--columns, 2), 1fr);
     gap: var(--spacing-m);
+}
+.form-row:has(> :nth-child(3)) {
+    --columns: 3;
 }
 
 .label {

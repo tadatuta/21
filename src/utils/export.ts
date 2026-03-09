@@ -94,7 +94,7 @@ export function generateMarkdown(data: AppData): string {
 
 function formatSet(set: WorkoutSet): string {
     if (set.duration !== undefined) {
-        return `${set.duration} мин`;
+        return `${set.duration} мин${set.durationSeconds ? ` ${set.durationSeconds} сек` : ''}`;
     }
     return `${set.weight}кг × ${set.reps}`;
 }

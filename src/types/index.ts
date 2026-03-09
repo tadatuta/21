@@ -29,6 +29,7 @@ export interface WorkoutSet extends SyncItem {
     reps?: number; // Optional for time-based
     weight?: number; // Optional for time-based
     duration?: number; // In minutes, for time-based
+    durationSeconds?: number; // Additional seconds, for time-based
     date: string; // ISO string
 }
 
